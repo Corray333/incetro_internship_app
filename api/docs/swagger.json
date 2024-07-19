@@ -1,0 +1,513 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/api/tasks": {
+            "get": {
+                "description": "Получить список задач, доступных пользователю",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Получить список задач",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access JWT",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/types.Task"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tasks/{task_id}": {
+            "get": {
+                "description": "Получить задачу (если она начата)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Получить задачу. Forbidden if status is Not started",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access JWT",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GetTaskResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Отметить теоретическую задачу выполненной, следующая задача получает статус \"В процессе\"",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Задача выполнена",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access JWT",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tasks/{task_id}/homework": {
+            "post": {
+                "description": "Сдать домашнюю работу для определенной задачи",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Сдать домашнюю работу",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access JWT",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Homework Data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.SaveHomeworkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Сдать домашнюю работу для определенной задачи",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Сдать домашнюю работу",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access JWT",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Homework Data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.SaveHomeworkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/login": {
+            "post": {
+                "description": "Вход в профиль и получение токенов",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Вход",
+                "parameters": [
+                    {
+                        "description": "User Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/refresh-tokens": {
+            "patch": {
+                "description": "Обновить access и refresh токены",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Обновить токена",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.GetTaskResponse": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "course_id": {
+                    "type": "string"
+                },
+                "cover": {
+                    "type": "string"
+                },
+                "homework": {
+                    "type": "string"
+                },
+                "next": {
+                    "type": "string"
+                },
+                "section": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/handlers.user"
+                }
+            }
+        },
+        "handlers.SaveHomeworkRequest": {
+            "type": "object",
+            "properties": {
+                "homework": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.user": {
+            "type": "object",
+            "properties": {
+                "auth_date": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "photo_url": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.Task": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "course_id": {
+                    "type": "string"
+                },
+                "cover": {
+                    "type": "string"
+                },
+                "homework": {
+                    "type": "string"
+                },
+                "next": {
+                    "type": "string"
+                },
+                "section": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

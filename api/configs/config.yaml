@@ -1,0 +1,6 @@
+node_url: "http://parser:3002/"
+interns_table: "673812455feb4ba48e71b8a1157bf477"
+courses_table: "1005898792054c25b511b3fdf1460e95"
+tasks_table: "c8fd119234ec4a698d100959795755ae"
+base_url: "https://internship.mark-anikin.ru"
+port: "3001"

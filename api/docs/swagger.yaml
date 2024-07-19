@@ -1,0 +1,339 @@
+definitions:
+  handlers.GetTaskResponse:
+    properties:
+      completed_at:
+        type: integer
+      content:
+        type: string
+      course_id:
+        type: string
+      cover:
+        type: string
+      homework:
+        type: string
+      next:
+        type: string
+      section:
+        type: string
+      status:
+        type: string
+      task_id:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      user:
+        $ref: '#/definitions/handlers.user'
+    type: object
+  handlers.SaveHomeworkRequest:
+    properties:
+      homework:
+        type: string
+    type: object
+  handlers.user:
+    properties:
+      auth_date:
+        type: string
+      first_name:
+        type: string
+      hash:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      photo_url:
+        type: string
+      username:
+        type: string
+    type: object
+  types.Task:
+    properties:
+      completed_at:
+        type: integer
+      content:
+        type: string
+      course_id:
+        type: string
+      cover:
+        type: string
+      homework:
+        type: string
+      next:
+        type: string
+      section:
+        type: string
+      status:
+        type: string
+      task_id:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/tasks:
+    get:
+      consumes:
+      - application/json
+      description: Получить список задач, доступных пользователю
+      parameters:
+      - description: Access JWT
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/types.Task'
+              type: array
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Получить список задач
+      tags:
+      - tasks
+  /api/tasks/{task_id}:
+    get:
+      consumes:
+      - application/json
+      description: Получить задачу (если она начата)
+      parameters:
+      - description: Access JWT
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetTaskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Получить задачу. Forbidden if status is Not started
+      tags:
+      - tasks
+    patch:
+      consumes:
+      - application/json
+      description: Отметить теоретическую задачу выполненной, следующая задача получает
+        статус "В процессе"
+      parameters:
+      - description: Access JWT
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Задача выполнена
+      tags:
+      - tasks
+  /api/tasks/{task_id}/homework:
+    patch:
+      consumes:
+      - application/json
+      description: Сдать домашнюю работу для определенной задачи
+      parameters:
+      - description: Access JWT
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      - description: Homework Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SaveHomeworkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Сдать домашнюю работу
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Сдать домашнюю работу для определенной задачи
+      parameters:
+      - description: Access JWT
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      - description: Homework Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SaveHomeworkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Сдать домашнюю работу
+      tags:
+      - tasks
+  /api/users/login:
+    post:
+      consumes:
+      - application/json
+      description: Вход в профиль и получение токенов
+      parameters:
+      - description: User Info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Вход
+      tags:
+      - users
+  /api/users/refresh-tokens:
+    patch:
+      consumes:
+      - application/json
+      description: Обновить access и refresh токены
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Обновить токена
+      tags:
+      - users
+swagger: "2.0"

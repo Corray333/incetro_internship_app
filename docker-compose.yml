@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/app
+      - .env/:/app/.env
+    ports:
+      - 3001:3001
+    command: make run
+    depends_on:
+      - db
+
+  parser:
+    image: node:latest
+    build: ./node
+    command: node main.js
+    volumes:
+      - ./node:/app
+    working_dir: /app
+    environment:
+      - HOST=0.0.0.0
+    ports:
+      - 3002:3002
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: internship
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+
+
+  
+  # nginx:
+  #   image: nginx:latest
+  #   ports:
+  #     - 80:80
+  #   volumes:
+  #     - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf
+  #   depends_on:
+  #     - app
+  #     - api
+  #     - db

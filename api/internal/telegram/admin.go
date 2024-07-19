@@ -1,0 +1,325 @@
+package telegram
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/Corray333/internship_app/internal/utils"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+)
+
+func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
+	admin, ok := tg.admins[update.FromChat().ID]
+	if !ok {
+		tg.admins[update.FromChat().ID] = Admin{state: StateNothing}
+	}
+
+	switch admin.state {
+	case StateNothing:
+		if update.Message != nil {
+			if update.Message.IsCommand() && update.Message.Command() == "start" {
+				msg := tgbotapi.NewMessage(update.FromChat().ID, "Приветствую тебя, всеотец. Для работы с ботом используй меню👇")
+				msg.ReplyMarkup = tgbotapi.NewReplyKeyboard(
+					tgbotapi.NewKeyboardButtonRow(
+						tgbotapi.NewKeyboardButton("Создать рассылку"),
+					),
+				)
+				tg.bot.Send(msg)
+			} else if update.Message.Text == "Создать рассылку" {
+				tg.admins[update.FromChat().ID] = Admin{state: StateWaitingUserTypePick}
+				msg := tgbotapi.NewMessage(update.FromChat().ID, "Кому отправить сообщение?")
+				msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("iOS", "iOS"),
+						tgbotapi.NewInlineKeyboardButtonData("Flutter", "flutter"),
+						tgbotapi.NewInlineKeyboardButtonData("Android", "android"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("Всем пользователям", "all"),
+					),
+				)
+				tg.bot.Send(msg)
+			}
+		}
+	case StateWaitingUserTypePick:
+		if update.CallbackQuery != nil {
+			cb := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+			tg.bot.Send(cb)
+
+			del := tgbotapi.NewDeleteMessage(update.FromChat().ID, update.CallbackQuery.Message.MessageID)
+			tg.bot.Send(del)
+
+			info := AdminRequestSending{}
+			info.UserType = update.CallbackData()
+			admin.info = info
+			tg.admins[update.FromChat().ID] = Admin{state: StateWaitingMessageText, info: info}
+			msg := tgbotapi.NewMessage(update.FromChat().ID, "Теперь отправь сообщение, которое нужно переслать всем пользователям👇")
+			tg.bot.Send(msg)
+		}
+	case StateWaitingMessageText:
+		if update.Message != nil {
+
+			tg.admins[update.FromChat().ID] = Admin{
+				state: StateNothing,
+			}
+
+			info, ok := admin.info.(AdminRequestSending)
+			if !ok {
+				tg.HandleError("error while getting admin info: wrong message type", "update_id", update.UpdateID)
+			}
+			info.Message = tgbotapi.MessageConfig{
+				Text:     update.Message.Text,
+				Entities: update.Message.Entities,
+			}
+			admin.info = info
+			admin.state = StateWaitingMessageAttachment
+			tg.admins[update.FromChat().ID] = admin
+
+			msg := tgbotapi.NewMessage(update.FromChat().ID, "Теперь добавь вложения, если они нужны. Это могут быть картинки, гифка или файлы. Когда отправишь все вложения, напиши в чате 'стоп'")
+			tg.bot.Send(msg)
+		}
+	case StateWaitingMessageAttachment:
+		info, ok := admin.info.(AdminRequestSending)
+		if !ok {
+			tg.HandleError("error while getting admin info: wrong message type", "update_id", update.UpdateID)
+			msg := tgbotapi.NewMessage(update.FromChat().ID, "Сорри, что-то пошло не так😬 Давай попробуем сначала.")
+			tg.bot.Send(msg)
+			tg.admins[update.FromChat().ID] = Admin{state: StateNothing}
+		}
+		switch {
+		case update.Message.Photo != nil:
+			info.AttachmentType = AttachmentImage
+			info.Attachments = append(info.Attachments, tgbotapi.FileID(update.Message.Photo[0].FileID))
+			admin.info = info
+			tg.admins[update.FromChat().ID] = admin
+
+		case update.Message.Document != nil:
+			info.AttachmentType = AttachmentFile
+			info.Attachments = append(info.Attachments, tgbotapi.FileID(update.Message.Document.FileID))
+			admin.info = info
+			tg.admins[update.FromChat().ID] = admin
+
+		case update.Message.Animation != nil:
+			info.AttachmentType = AttachmentAnimation
+			info.Attachments = append(info.Attachments, tgbotapi.FileID(update.Message.Animation.FileID))
+			msg := tgbotapi.NewAnimation(update.FromChat().ID, info.Attachments[0])
+			msg.CaptionEntities = info.Message.Entities
+			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("Отправить", "send"),
+					tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
+				),
+			)
+			tg.bot.Send(msg)
+			admin.info = info
+			tg.admins[update.FromChat().ID] = admin
+		case update.Message.Text == "стоп":
+			admin.state = StateWaitingSending
+			tg.admins[update.FromChat().ID] = admin
+			switch info.AttachmentType {
+			case AttachmentImage:
+				if len(info.Attachments) == 1 {
+					msg := tgbotapi.NewPhoto(update.FromChat().ID, info.Attachments[0])
+					msg.CaptionEntities = info.Message.Entities
+					msg.Caption = info.Message.Text
+					msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+						tgbotapi.NewInlineKeyboardRow(
+							tgbotapi.NewInlineKeyboardButtonData("Отправить", "send"),
+							tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
+						),
+					)
+					tg.bot.Send(msg)
+
+				} else {
+					mediaGroup := make([]interface{}, len(info.Attachments))
+					for i := range info.Attachments {
+						mediaGroup[i] = tgbotapi.NewInputMediaPhoto(info.Attachments[i])
+					}
+					mg := tgbotapi.NewMediaGroup(update.FromChat().ID, mediaGroup)
+					tg.bot.Send(mg)
+					msg := tgbotapi.NewMessage(update.FromChat().ID, info.Message.Text)
+					msg.Entities = info.Message.Entities
+					msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+						tgbotapi.NewInlineKeyboardRow(
+							tgbotapi.NewInlineKeyboardButtonData("Отправить", "send"),
+							tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
+						),
+					)
+					tg.bot.Send(msg)
+				}
+			case AttachmentFile:
+				for _, file := range info.Attachments {
+					msg := tgbotapi.NewDocument(update.FromChat().ID, file)
+					tg.bot.Send(msg)
+				}
+				msg := tgbotapi.NewMessage(update.FromChat().ID, info.Message.Text)
+				msg.Entities = info.Message.Entities
+				msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("Отправить", "send"),
+						tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
+					),
+				)
+				tg.bot.Send(msg)
+			}
+		}
+	case StateWaitingSending:
+		cb := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+		tg.bot.Send(cb)
+
+		tg.admins[update.FromChat().ID] = Admin{state: StateNothing}
+
+		del := tgbotapi.NewDeleteMessage(update.FromChat().ID, update.CallbackQuery.Message.MessageID)
+		tg.bot.Send(del)
+
+		info, ok := admin.info.(AdminRequestSending)
+		if !ok {
+			tg.HandleError("error while sending status: wrong info type", "update_id", update.UpdateID)
+		}
+
+		if update.CallbackQuery == nil {
+			tg.HandleError("error while sending status: callback query is nil", "update_id", update.UpdateID)
+		}
+
+		if update.CallbackQuery.Data == "cancel" {
+			msg := tgbotapi.NewMessage(update.FromChat().ID, "Отмена отправки сообщения")
+			tg.bot.Send(msg)
+			tg.admins[update.FromChat().ID] = Admin{state: StateNothing}
+			return
+		}
+
+		switch info.AttachmentType {
+		case AttachmentImage:
+			users, err := tg.store.GetUsersOnCourse(info.UserType)
+			if err != nil {
+				tg.HandleError("error while getting users on course: "+err.Error(), "update_id", update.UpdateID)
+			}
+			for _, user := range users {
+				if len(info.Attachments) == 1 {
+					msg := tgbotapi.NewPhoto(user.UserID, info.Attachments[0])
+					msg.CaptionEntities = info.Message.Entities
+					msg.Caption = info.Message.Text
+					tg.bot.Send(msg)
+
+				} else {
+					mediaGroup := make([]interface{}, len(info.Attachments))
+					for i := range info.Attachments {
+						mediaGroup[i] = tgbotapi.NewInputMediaPhoto(info.Attachments[i])
+					}
+					mg := tgbotapi.NewMediaGroup(user.UserID, mediaGroup)
+					tg.bot.Send(mg)
+					msg := tgbotapi.NewMessage(user.UserID, info.Message.Text)
+					msg.Entities = info.Message.Entities
+					tg.bot.Send(msg)
+				}
+			}
+
+		case AttachmentFile:
+			users, err := tg.store.GetUsersOnCourse(info.UserType)
+			if err != nil {
+				tg.HandleError("error while getting users on course: "+err.Error(), "update_id", update.UpdateID)
+			}
+			for _, user := range users {
+				for _, file := range info.Attachments {
+					msg := tgbotapi.NewDocument(user.UserID, file)
+					tg.bot.Send(msg)
+				}
+				msg := tgbotapi.NewMessage(user.UserID, info.Message.Text)
+				msg.Entities = info.Message.Entities
+				msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("Отправить", "send"),
+						tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
+					),
+				)
+				tg.bot.Send(msg)
+			}
+
+		case AttachmentAnimation:
+			users, err := tg.store.GetUsersOnCourse(info.UserType)
+			if err != nil {
+				tg.HandleError("error while getting users on course: "+err.Error(), "update_id", update.UpdateID)
+			}
+			for _, user := range users {
+				msg := tgbotapi.NewAnimation(user.UserID, info.Attachments[0])
+				msg.CaptionEntities = info.Message.Entities
+				tg.bot.Send(msg)
+			}
+		}
+		msg := tgbotapi.NewMessage(update.FromChat().ID, "Рассылка запущена😉")
+		tg.bot.Send(msg)
+
+	}
+
+}
+
+const (
+	AttachmentFile = iota + 1
+	AttachmentImage
+	AttachmentAnimation
+)
+
+type AdminRequestSending struct {
+	UserType       string
+	Message        tgbotapi.MessageConfig
+	AttachmentType int
+	Attachments    []tgbotapi.RequestFileData
+}
+
+func (tg *TelegramClient) SendHomework(uid int64, taskID string, message string) error {
+	user, err := tg.store.GetUserByID(uid)
+	if err != nil {
+		return err
+	}
+
+	curatorID, err := tg.store.GetCuratorOfUser(uid)
+	if err != nil {
+		return err
+	}
+
+	task, err := tg.store.GetTask(uid, taskID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(curatorID)
+
+	text := fmt.Sprintf("**Пользователь** [%s](%s) **отправил домашнюю работу к задаче %s:\n\n%s", user.FIO, "t.me/"+user.Username, task.Title, utils.EscapeMarkdownV2(message))
+
+	data, err := json.Marshal(HomeworkCheck{
+		TaskID: taskID,
+		UserID: uid,
+	})
+	if err != nil {
+		return err
+	}
+
+	msg := tgbotapi.NewMessage(curatorID, text)
+	msg.ParseMode = tgbotapi.ModeMarkdown
+	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Принять", HomeworkStatusApproved),
+			tgbotapi.NewInlineKeyboardButtonData("Отклонить", HomeworkStatusRejected),
+		),
+	)
+	sent, err := tg.bot.Send(msg)
+	if err != nil {
+		return err
+	}
+
+	if err := tg.store.SetUpdateData(sent.MessageID, string(data)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type HomeworkCheck struct {
+	TaskID string `json:"task_id"`
+	UserID int64  `json:"user_id"`
+}
+
+var (
+	HomeworkStatusApproved = "approved"
+	HomeworkStatusRejected = "rejected"
+)
