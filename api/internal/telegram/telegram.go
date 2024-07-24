@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 
 	"github.com/Corray333/internship_app/internal/types"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -53,6 +54,19 @@ type TelegramClient struct {
 type Admin struct {
 	state int
 	info  interface{}
+}
+
+var messages = []string{
+	"Не понимаю, чего ты хочешь😅",
+	"Прости, я тебя не понял🤔",
+	"Что-то пошло не так, попробуй снова🙏",
+	"Не могу разобраться, попробуй иначе😉",
+	"Похоже, я тебя не понимаю😕",
+	"Давай попробуем еще раз, я тебя не понял😊",
+	"Может быть, я что-то упустил. Попробуй ещё раз😌",
+	"Извини, я тебя не понял. Попробуй сформулировать иначе🤷‍♂️",
+	"Я не совсем понял твоё действие. Попробуй что-то другое🙃",
+	"Не могу распознать твой запрос. Попробуй снова🧐",
 }
 
 func NewClient(token string, store Storage) *TelegramClient {
@@ -143,6 +157,9 @@ func (tg *TelegramClient) handleUserUpdate(update tgbotapi.Update) {
 		tg.handleDirectionPick(user, update)
 	case StateWaitingGroup:
 		tg.groupJoined(user, update)
+	default:
+		msg := tgbotapi.NewMessage(update.FromChat().ID, messages[rand.Int()%len(messages)])
+		tg.bot.Send(msg)
 	}
 
 	if err := tg.store.UpdateUser(user); err != nil {

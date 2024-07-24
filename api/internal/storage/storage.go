@@ -200,6 +200,7 @@ func (s *Storage) GetTasks(user_id int64) ([]types.Task, error) {
 func (s *Storage) GetTask(user_id int64, task_id string) (*types.Task, error) {
 	task := types.Task{}
 	err := s.db.Get(&task, "SELECT task_id, user_id, title, status, type, is_first, next, content, homework FROM progress NATURAL JOIN tasks WHERE progress.user_id = $1 AND task_id = $2", user_id, task_id)
+	task.StatusPublic = types.TaskStatuses[task.Status]
 	return &task, err
 
 }

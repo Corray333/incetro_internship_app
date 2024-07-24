@@ -43,7 +43,7 @@ func Run(tg *telegram.TelegramClient, store *storage.Storage) {
 
 	router.Get("/api/swagger/*", httpSwagger.WrapHandler)
 	router.Post("/api/users/login", handlers.Login(store))
-	router.Patch("/api/users/refresh-tokens", handlers.RefreshTokens(store))
+	router.Post("/api/users/refresh-tokens", handlers.RefreshTokens(store))
 
 	// TODO: add timeouts
 	fmt.Println("Port:", viper.GetString("port"))

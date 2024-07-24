@@ -104,7 +104,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.GetTaskResponse"
+                            "$ref": "#/definitions/types.Task"
                         }
                     },
                     "400": {
@@ -360,7 +360,7 @@ const docTemplate = `{
             }
         },
         "/api/users/refresh-tokens": {
-            "patch": {
+            "post": {
                 "description": "Обновить access и refresh токены",
                 "consumes": [
                     "application/json"
@@ -402,49 +402,11 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.GetTaskResponse": {
-            "type": "object",
-            "properties": {
-                "completed_at": {
-                    "type": "integer"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "course_id": {
-                    "type": "string"
-                },
-                "cover": {
-                    "type": "string"
-                },
-                "homework": {
-                    "type": "string"
-                },
-                "next": {
-                    "type": "string"
-                },
-                "section": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "task_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
         "handlers.LoginRequest": {
             "type": "object",
             "properties": {
-                "user": {
-                    "$ref": "#/definitions/handlers.user"
+                "initData": {
+                    "type": "string"
                 }
             }
         },
@@ -456,48 +418,26 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.user": {
-            "type": "object",
-            "properties": {
-                "auth_date": {
-                    "type": "string"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "hash": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "photo_url": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
         "types.Task": {
             "type": "object",
             "properties": {
-                "completed_at": {
+                "completedAt": {
                     "type": "integer"
                 },
                 "content": {
                     "type": "string"
                 },
-                "course_id": {
+                "courseID": {
                     "type": "string"
                 },
                 "cover": {
                     "type": "string"
                 },
                 "homework": {
+                    "description": "Поле с выполненной домашней работой стажера",
+                    "type": "string"
+                },
+                "id": {
                     "type": "string"
                 },
                 "next": {
@@ -507,9 +447,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
-                },
-                "task_id": {
                     "type": "string"
                 },
                 "title": {
@@ -533,6 +470,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {

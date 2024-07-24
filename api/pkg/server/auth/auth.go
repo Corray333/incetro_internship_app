@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -17,31 +18,58 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func СheckTelegramAuth(data map[string]string) bool {
-	// Сортировка ключей для формирования строки для проверки хэша
-	var keys []string
-	for k := range data {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+func CheckTelegramAuth(initData string) (int64, bool) {
+	parsedData, _ := url.QueryUnescape(initData)
+	chunks := strings.Split(parsedData, "&")
+	var dataPairs [][]string
+	hash := ""
+	user := &struct {
+		ID int64 `json:"id"`
+	}{}
 
-	// Формирование строки для проверки хэша
-	var dataCheckStrings []string
-	for _, k := range keys {
-		if k != "hash" { // исключаем поле 'hash' из строки для проверки хэша
-			dataCheckStrings = append(dataCheckStrings, fmt.Sprintf("%s=%s", k, data[k]))
+	// Filter and split the chunks
+	for _, chunk := range chunks {
+		if strings.HasPrefix(chunk, "user=") {
+			parsedData = strings.TrimPrefix(chunk, "user=")
+			if err := json.Unmarshal([]byte(parsedData), user); err != nil {
+				slog.Error("Failed to unmarshal user data: " + err.Error())
+				return 0, false
+			}
+		}
+		if strings.HasPrefix(chunk, "hash=") {
+			hash = strings.TrimPrefix(chunk, "hash=")
+		} else {
+			pair := strings.SplitN(chunk, "=", 2)
+			dataPairs = append(dataPairs, pair)
 		}
 	}
-	dataCheckString := strings.Join(dataCheckStrings, "\n")
 
-	// Вычисление HMAC-SHA256 хэша
-	key := []byte(os.Getenv("BOT_TOKEN"))
-	h := hmac.New(sha256.New, key)
-	h.Write([]byte(dataCheckString))
-	calculatedHash := hex.EncodeToString(h.Sum(nil))
+	// Sort the data pairs by the key
+	sort.Slice(dataPairs, func(i, j int) bool {
+		return dataPairs[i][0] < dataPairs[j][0]
+	})
 
-	// Сравнение вычисленного хэша с переданным хэшем
-	return calculatedHash == data["hash"]
+	// Join the sorted data pairs into the initData string
+	var sortedData []string
+	for _, pair := range dataPairs {
+		sortedData = append(sortedData, fmt.Sprintf("%s=%s", pair[0], pair[1]))
+	}
+	initData = strings.Join(sortedData, "\n")
+	// Create the secret key using HMAC and the given token
+	h := hmac.New(sha256.New, []byte("WebAppData"))
+	h.Write([]byte(os.Getenv("BOT_TOKEN")))
+	secretKey := h.Sum(nil)
+
+	// Create the data check using the secret key and initData
+	h = hmac.New(sha256.New, secretKey)
+	h.Write([]byte(initData))
+	dataCheck := h.Sum(nil)
+
+	fmt.Println(initData)
+	fmt.Printf("%x\n", dataCheck)
+	fmt.Println(hash)
+
+	return user.ID, fmt.Sprintf("%x", dataCheck) == hash
 }
 
 const (

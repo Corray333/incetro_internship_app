@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Corray333/internship_app/internal/telegram"
@@ -49,6 +48,7 @@ type ListTasksResponse []types.Task
 // @Router /api/tasks [get]
 func ListTasks(store Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		creds := r.Context().Value("creds").(auth.Credentials)
 		if creds.ID == 0 {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -81,8 +81,6 @@ func ListTasks(store Storage) http.HandlerFunc {
 	}
 }
 
-type GetTaskResponse types.Task
-
 // @Summary Получить задачу. Forbidden if status is Not started
 // @Description Получить задачу (если она начата)
 // @Tags tasks
@@ -90,13 +88,14 @@ type GetTaskResponse types.Task
 // @Produce json
 // @Param Authorization header string true "Access JWT"
 // @Param task_id path string true "Task ID"
-// @Success 200 {object} GetTaskResponse
+// @Success 200 {object} types.Task
 // @Failure 400 {string} string "Bad Request"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/tasks/{task_id} [get]
 func GetTask(store Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		taskID := chi.URLParam(r, "task_id")
 		if taskID == "" {
 			slog.Error("error while getting task id")
@@ -155,6 +154,7 @@ type SaveHomeworkRequest struct {
 // @Router /api/tasks/{task_id}/homework [patch]
 func SaveHomework(tg *telegram.TelegramClient, store Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 
 		creds := r.Context().Value("creds").(auth.Credentials)
 		if creds.ID == 0 {
@@ -197,7 +197,7 @@ func SaveHomework(tg *telegram.TelegramClient, store Storage) http.HandlerFunc {
 }
 
 type LoginRequest struct {
-	User user `json:"user"`
+	InitData string `json:"initData"`
 }
 
 // @Summary Вход
@@ -212,41 +212,28 @@ type LoginRequest struct {
 // @Router /api/users/login [post]
 func Login(store Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req := &struct {
-			User map[string]string `json:"user"`
-		}{}
+		w.Header().Set("Content-Type", "application/json")
+		req := &LoginRequest{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			slog.Error("error while decoding save homework request: " + err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		// if allowed := auth.СheckTelegramAuth(req.User); !allowed {
-		// 	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-		// 	return
-		// }
-
-		uidRaw, ok := req.User["id"]
-		if !ok {
-			slog.Error("error while getting user id")
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		uid, allowed := auth.CheckTelegramAuth(req.InitData)
+		if !allowed {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
+		fmt.Println("UID: ", uid)
 
-		uid, err := strconv.Atoi(uidRaw)
-		if err != nil {
-			slog.Error("error while converting user id to int")
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		refresh, err := auth.CreateToken(int64(uid), auth.RefreshTokenLifeTime)
+		refresh, err := auth.CreateToken(uid, auth.RefreshTokenLifeTime)
 		if err != nil {
 			http.Error(w, "Failed to create token", http.StatusInternalServerError)
 			slog.Error("Failed to create token: " + err.Error())
 			return
 		}
 
-		if err := store.SetRefresh(int64(uid), refresh); err != nil {
+		if err := store.SetRefresh(uid, refresh); err != nil {
 			http.Error(w, "Failed to set refresh token", http.StatusInternalServerError)
 			slog.Error("Failed to set refresh token: " + err.Error())
 			return
@@ -275,7 +262,7 @@ func Login(store Storage) http.HandlerFunc {
 
 		http.SetCookie(w, &cookie)
 
-		token, err := auth.CreateToken(int64(uid), auth.AccessTokenLifeTime)
+		token, err := auth.CreateToken(uid, auth.AccessTokenLifeTime)
 		if err != nil {
 			http.Error(w, "Failed to create token", http.StatusInternalServerError)
 			slog.Error("Failed to create token: " + err.Error())
@@ -297,9 +284,10 @@ func Login(store Storage) http.HandlerFunc {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /api/users/refresh-tokens [patch]
+// @Router /api/users/refresh-tokens [post]
 func RefreshTokens(store Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		refreshCookie, err := r.Cookie("Refresh")
 		if err != nil {
 			http.Error(w, "Failed to get refresh cookie", http.StatusUnauthorized)
@@ -363,6 +351,7 @@ func RefreshTokens(store Storage) http.HandlerFunc {
 // @Router /api/tasks/{task_id} [patch]
 func TaskDone(store Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		taskID := chi.URLParam(r, "task_id")
 		if taskID == "" {
 			slog.Error("error while getting task id")
