@@ -23,16 +23,6 @@ type Storage interface {
 	TaskDone(uid int64, task *types.Task) error
 }
 
-type user struct {
-	ID        string `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Username  string `json:"username"`
-	PhotoURL  string `json:"photo_url"`
-	AuthDate  string `json:"auth_date"`
-	Hash      string `json:"hash"`
-}
-
 type ListTasksResponse []types.Task
 
 // @Summary Получить список задач

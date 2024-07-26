@@ -1,8 +1,10 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/Corray333/internship_app/internal/types"
 	"github.com/Corray333/internship_app/pkg/server/auth"
@@ -237,8 +239,24 @@ func (s *Storage) UpdateUser(user *types.User) error {
 }
 
 func (s *Storage) SaveHomework(userID int64, taskID string, homework string) error {
-	_, err := s.db.Exec("UPDATE progress SET homework = $1, status=3 WHERE user_id = $2 AND task_id = $3", homework, userID, taskID)
-	return err
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	res, err := tx.Exec("UPDATE progress SET homework = $1, status=3 WHERE user_id = $2 AND task_id = $3", homework, userID, taskID)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return errors.New("wrong number of tasks got homework: " + strconv.Itoa(int(rows)))
+	}
+
+	return tx.Commit()
 }
 
 func (s *Storage) GetCuratorOfUser(user_id int64) (int64, error) {
@@ -290,7 +308,9 @@ func (s *Storage) RefreshToken(id int64, oldRefresh string) (string, string, err
 		return "", "", err
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return "", "", err
+	}
 
 	return newAccess, newRefresh, nil
 }

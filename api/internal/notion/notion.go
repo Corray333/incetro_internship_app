@@ -121,7 +121,7 @@ type Task struct {
 		} `json:"Предыдущий шаг"`
 		Direction struct {
 			Relation []struct {
-				ID string `json: "id"`
+				ID string `json:"id"`
 			} `json:"relation"`
 		} `json:"Направление"`
 		Section struct {

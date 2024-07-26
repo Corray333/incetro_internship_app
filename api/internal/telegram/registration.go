@@ -23,55 +23,56 @@ func (tg *TelegramClient) sendWelcomeMessage(chatID int64) {
 			keyboard := tgbotapi.NewReplyKeyboard([]tgbotapi.KeyboardButton{button})
 			msg := tgbotapi.NewMessage(chatID, "Привет! Это команда Incetro.\nЧтобы зарегистрироваться на стажировку, поделись своим контактом🤙")
 			msg.ReplyMarkup = keyboard
-			tg.bot.Send(msg)
+			if _, err := tg.bot.Send(msg); err != nil {
+				tg.HandleError("error while sending message: "+err.Error(), "chat_id", chatID)
+				return
+			}
 			return
 		}
 		tg.HandleError("error while getting user from db: "+err.Error(), "chat_id", chatID)
 		return
 	}
 	msg := tgbotapi.NewMessage(chatID, "Прости, но я не понимаю, что ты от меня хочешь😥")
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Send(msg); err != nil {
+		tg.HandleError("error while sending message: "+err.Error(), "chat_id", chatID)
+		return
+	}
 
 }
 
 func (tg *TelegramClient) handleInputFIO(user *types.User, update tgbotapi.Update) {
 	re := regexp.MustCompile(`^([A-Za-zА-Яа-яЁё]+[ \t]*)+$`)
 	if !re.MatchString(update.Message.Text) {
+		var msg tgbotapi.Chattable
 		switch user.Fails {
 		case 0:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Пожалуйста, введи только имя и фамилию)")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Пожалуйста, введи только имя и фамилию)")
 		case 1:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Прошууу, введи только имя и фамилию🙄")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Прошууу, введи только имя и фамилию🙄")
 		case 2:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Ну тебе что, сложно ввести только имя и фамилию?💩")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Ну тебе что, сложно ввести только имя и фамилию?💩")
 		case 3:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Давай, я верю в тебя! Только имя и фамилия! 💪")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Давай, я верю в тебя! Только имя и фамилия! 💪")
 		case 4:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Серьёзно? Имя и фамилия, пожалуйста! 🙃")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Серьёзно? Имя и фамилия, пожалуйста! 🙃")
 		case 5:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Нуууу, ты можешь! Просто имя и фамилия! 😤")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Нуууу, ты можешь! Просто имя и фамилия! 😤")
 		case 6:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Ты точно умеешь читать, да? Имя. Фамилия. 🧐")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Ты точно умеешь читать, да? Имя. Фамилия. 🧐")
 		case 7:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "А может, тебе помочь? Имя и фамилия, давай! 😅")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "А может, тебе помочь? Имя и фамилия, давай! 😅")
 		case 8:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Ладно, это уже не смешно. Имя и фамилия, ок? 😑")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Ладно, это уже не смешно. Имя и фамилия, ок? 😑")
 		case 9:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Последний раз повторяю - имя и фамилия!😡")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Последний раз повторяю - имя и фамилия!😡")
 		default:
-			msg := tgbotapi.NewAnimation(update.FromChat().ID, tgbotapi.FileURL("https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnBqcXV2eDYxeG9xcjgweDh1dms5dnExdjIzbndpYTdzZzY5MHlwaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT1R9Y1cmnniQDyL5K/giphy.gif"))
-			msg.Caption = "Ой, всё, наши индусы устали придумывать ответы на твои косяки, просто введи имя и фамилию😫"
-			tg.bot.Send(msg)
+			anim := tgbotapi.NewAnimation(update.FromChat().ID, tgbotapi.FileURL("https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnBqcXV2eDYxeG9xcjgweDh1dms5dnExdjIzbndpYTdzZzY5MHlwaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT1R9Y1cmnniQDyL5K/giphy.gif"))
+			anim.Caption = "Ой, всё, наши индусы устали придумывать ответы на твои косяки, просто введи имя и фамилию😫"
+			msg = anim
+		}
+		if _, err := tg.bot.Send(msg); err != nil {
+			tg.HandleError("error while sending message: "+err.Error(), "chat_id", update.FromChat().ID)
+			return
 		}
 		user.Fails++
 		return
@@ -81,47 +82,45 @@ func (tg *TelegramClient) handleInputFIO(user *types.User, update tgbotapi.Updat
 	user.Fails = 0
 
 	msg := tgbotapi.NewMessage(update.FromChat().ID, "Осталось совсем немного 🌝 отправишь свою рабочую / контактную почту?)")
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Send(msg); err != nil {
+		tg.HandleError("error while sending message: "+err.Error(), "chat_id", update.FromChat().ID)
+		return
+	}
 
 }
 
 func (tg *TelegramClient) handleInputEmail(user *types.User, update tgbotapi.Update) {
 	if _, err := mail.ParseAddress(update.Message.Text); err != nil {
+		var msg tgbotapi.Chattable
 		switch user.Fails {
 		case 0:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Введи настоящую электронную почту)")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Введи настоящую электронную почту)")
 		case 1:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Ну введи электронную почту🥺")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Ну введи электронную почту🥺")
 		case 2:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Пожалуйста, введи настоящую электронную почту! 📧")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Пожалуйста, введи настоящую электронную почту! 📧")
 		case 3:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Эй, мне нужна твоя настоящая электронная почта! 🙄")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Эй, мне нужна твоя настоящая электронная почта! 🙄")
 		case 4:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Давай, без фокусов. Электронная почта, пожалуйста! 😅")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Давай, без фокусов. Электронная почта, пожалуйста! 😅")
 		case 5:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Ты сможешь! Введи правильную электронную почту! 💪")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Ты сможешь! Введи правильную электронную почту! 💪")
 		case 6:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Ну это уже смешно. Настоящую почту, пожалуйста. 🧐")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Ну это уже смешно. Настоящую почту, пожалуйста. 🧐")
 		case 7:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Электронную почту в студию! 🎤")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Электронную почту в студию! 🎤")
 		case 8:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Серьёзно, без правильной почты никак. 🙃")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Серьёзно, без правильной почты никак. 🙃")
 		case 9:
-			msg := tgbotapi.NewMessage(update.FromChat().ID, "Последний раз! Введи свою настоящую почту! 😡")
-			tg.bot.Send(msg)
+			msg = tgbotapi.NewMessage(update.FromChat().ID, "Последний раз! Введи свою настоящую почту! 😡")
 		default:
-			msg := tgbotapi.NewAnimation(update.FromChat().ID, tgbotapi.FileURL("https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExN3l1M2VnbWVqbjVxamVxMGc4dGMxempuMGh1bmYwM3VxdTQ3NXZleSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l4HnKwiJJaJQB04Zq/giphy.gif"))
-			msg.Caption = "Сорри, у нашего разработчика кончилось воображение, теперь сообщения будут повторяться("
-			tg.bot.Send(msg)
+			anim := tgbotapi.NewAnimation(update.FromChat().ID, tgbotapi.FileURL("https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExN3l1M2VnbWVqbjVxamVxMGc4dGMxempuMGh1bmYwM3VxdTQ3NXZleSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l4HnKwiJJaJQB04Zq/giphy.gif"))
+			anim.Caption = "Сорри, у нашего разработчика кончилось воображение, теперь сообщения будут повторяться("
+			msg = anim
+		}
+		if _, err := tg.bot.Send(msg); err != nil {
+			tg.HandleError("error while sending message: "+err.Error(), "chat_id", update.FromChat().ID)
+			return
 		}
 		user.Fails++
 		return
@@ -133,7 +132,10 @@ func (tg *TelegramClient) handleInputEmail(user *types.User, update tgbotapi.Upd
 	courses, err := notion.GetCourses()
 	if err != nil {
 		msg := tgbotapi.NewMessage(user.UserID, "Упс, у нас возникли технические проблемы, попробуй зайти позже😬")
-		tg.bot.Send(msg)
+		if _, err := tg.bot.Send(msg); err != nil {
+			tg.HandleError("error while sending message: "+err.Error(), "chat_id", update.FromChat().ID)
+			return
+		}
 		slog.Error("Error getting courses:" + err.Error())
 		return
 	}
@@ -146,7 +148,10 @@ func (tg *TelegramClient) handleInputEmail(user *types.User, update tgbotapi.Upd
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(buttons...)
 	msg := tgbotapi.NewMessage(update.FromChat().ID, "Выбери курс:")
 	msg.ReplyMarkup = keyboard
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Send(msg); err != nil {
+		tg.HandleError("error while sending message: "+err.Error(), "chat_id", update.FromChat().ID)
+		return
+	}
 }
 
 func (tg *TelegramClient) handleDirectionPick(user *types.User, update tgbotapi.Update) {
@@ -160,15 +165,17 @@ func (tg *TelegramClient) handleDirectionPick(user *types.User, update tgbotapi.
 	user.Course = &selectedCourse
 	user.State = StateWaitingGroup
 
-	fmt.Println()
-	fmt.Printf("User check1: %+v\n", user)
-	fmt.Println()
-
 	callback := tgbotapi.NewCallback(callbackQuery.ID, "Спасибо за выбор курса")
-	tg.bot.Request(callback)
+	if _, err := tg.bot.Request(callback); err != nil {
+		tg.HandleError("error sending callback: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	deleteMsg := tgbotapi.NewDeleteMessage(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID)
-	tg.bot.Send(deleteMsg)
+	if _, err := tg.bot.Request(deleteMsg); err != nil {
+		tg.HandleError("error deleting message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	course, err := tg.store.GetCourse(*user.Course)
 	if err != nil {
@@ -184,7 +191,10 @@ func (tg *TelegramClient) handleDirectionPick(user *types.User, update tgbotapi.
 		tgbotapi.NewInlineKeyboardButtonData("Я вступил в групу", "joined_group"),
 	})
 	msg.ReplyMarkup = keyboard
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Request(msg); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 }
 
@@ -223,20 +233,35 @@ func (tg *TelegramClient) groupJoined(user *types.User, update tgbotapi.Update) 
 	// Check the status of the user in the chat
 	if chatMember.Status != "creator" && chatMember.Status != "administrator" && chatMember.Status != "member" {
 		callback := tgbotapi.NewCallback(callbackQuery.ID, "Вступи в группу")
-		tg.bot.Request(callback)
+		if _, err := tg.bot.Request(callback); err != nil {
+			tg.HandleError("error sending callback: "+err.Error(), "update_id", update.UpdateID)
+			return
+		}
 		msg := tgbotapi.NewMessage(userID, "Вступи в группу😑")
-		tg.bot.Send(msg)
+		if _, err := tg.bot.Request(msg); err != nil {
+			tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+			return
+		}
 		return
 	}
 
 	callback := tgbotapi.NewCallback(callbackQuery.ID, "Спасибо")
-	tg.bot.Request(callback)
+	if _, err := tg.bot.Request(callback); err != nil {
+		tg.HandleError("error sending callback: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	deleteMsg := tgbotapi.NewDeleteMessage(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID)
-	tg.bot.Send(deleteMsg)
+	if _, err := tg.bot.Request(deleteMsg); err != nil {
+		tg.HandleError("error deleting message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	msg := tgbotapi.NewMessage(callbackQuery.From.ID, "Спасибо, твоя заявка принята, скоро мы вышлем инструкции для прохождения стажировки")
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Request(msg); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	tg.createUser(callbackQuery.Message.Chat.ID, user)
 }
@@ -245,7 +270,10 @@ func (tg *TelegramClient) createUser(chat_id int64, user *types.User) {
 	userID, err := notion.CreateUser(chat_id, user)
 	if err != nil {
 		msg := tgbotapi.NewMessage(chat_id, "Ошибка при создании пользователя.")
-		tg.bot.Send(msg)
+		if _, err := tg.bot.Request(msg); err != nil {
+			tg.HandleError("error sending message: "+err.Error(), "user", user)
+			return
+		}
 		log.Println("Error creating user:", err)
 		return
 	}
@@ -256,11 +284,17 @@ func (tg *TelegramClient) createUser(chat_id int64, user *types.User) {
 	keyboard := tgbotapi.NewInlineKeyboardMarkup([]tgbotapi.InlineKeyboardButton{button})
 	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = keyboard
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Request(msg); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "user", user)
+		return
+	}
 
 	msg = tgbotapi.NewMessage(ANDREW_CHAT_ID, fmt.Sprintf("Зарегистрирован новый пользователь: [%s](%s)", user.Username, "https://t.me/"+user.Username))
 	msg.ParseMode = "Markdown"
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Request(msg); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "user", user)
+		return
+	}
 
 }
 
@@ -279,7 +313,10 @@ func (tg *TelegramClient) handleContact(update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(chatID, "Теперь скажи, как к тебе обращаться? Отправь свои фамилию и имя)")
 	removeKeyboard := tgbotapi.NewRemoveKeyboard(true)
 	msg.ReplyMarkup = removeKeyboard
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Request(msg); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 }
 
@@ -316,29 +353,44 @@ func (tg *TelegramClient) userAccepted(update tgbotapi.Update) {
 	user, err := tg.store.GetUserByID(int64(chatID))
 	if err != nil {
 		msg := tgbotapi.NewMessage(callbackQuery.From.ID, "Ошибка при подтверждении пользователя")
-		tg.bot.Send(msg)
+		if _, err := tg.bot.Request(msg); err != nil {
+			tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+			return
+		}
 		tg.HandleError("ошикба при поиске пользователя: "+err.Error(), "update_id", update.UpdateID)
 		return
 	}
 
 	if err := tg.store.VerifyUser(int64(chatID)); err != nil {
 		msg := tgbotapi.NewMessage(callbackQuery.From.ID, "Ошибка при подтверждении пользователя")
-		tg.bot.Send(msg)
-		slog.Error(err.Error())
+		if _, err := tg.bot.Request(msg); err != nil {
+			tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+			return
+		}
+		tg.HandleError("ошикба при поиске пользователя: "+err.Error(), "update_id", update.UpdateID)
 		return
 	}
 	callback := tgbotapi.NewCallback(callbackQuery.ID, "Пользователь принят на стажировку")
-	tg.bot.Send(callback)
+	if _, err := tg.bot.Request(callback); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	del := tgbotapi.NewDeleteMessage(callbackQuery.From.ID, callbackQuery.Message.MessageID)
-	tg.bot.Send(del)
+	if _, err := tg.bot.Send(del); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	// Send message to the user that their account has been verified
 	msg := tgbotapi.NewMessage(int64(chatID), "Поздравляем, ты принят на обучение🥳 Чтобы преступить к обучению, перейди в наше приложение👇")
 	loginButton := tgbotapi.NewInlineKeyboardButtonURL("Начать🔥", "https://t.me/incetro_management_bot/app")
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(loginButton))
 	msg.ReplyMarkup = keyboard
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Request(msg); err != nil {
+		tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	if err := tg.store.GiveTasks(int64(chatID), *user.Course); err != nil {
 		tg.HandleError("error while giving tasks to user: "+err.Error(), "update_id", update.UpdateID)
@@ -356,5 +408,7 @@ func (tg *TelegramClient) HandleError(err string, args ...any) {
 	slog.Error(err)
 
 	msg := tgbotapi.NewMessage(MARK_CHAT_ID, err)
-	tg.bot.Send(msg)
+	if _, err := tg.bot.Send(msg); err != nil {
+		slog.Error("error while handling error: "+err.Error(), "error", err)
+	}
 }

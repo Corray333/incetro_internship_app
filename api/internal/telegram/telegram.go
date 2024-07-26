@@ -92,6 +92,11 @@ func NewClient(token string, store Storage) *TelegramClient {
 }
 
 func (tg *TelegramClient) Run() {
+	defer func() {
+		if r := recover(); r != nil {
+			tg.HandleError("panic: " + r.(string))
+		}
+	}()
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -159,7 +164,10 @@ func (tg *TelegramClient) handleUserUpdate(update tgbotapi.Update) {
 		tg.groupJoined(user, update)
 	default:
 		msg := tgbotapi.NewMessage(update.FromChat().ID, messages[rand.Int()%len(messages)])
-		tg.bot.Send(msg)
+		if _, err := tg.bot.Send(msg); err != nil {
+			tg.HandleError("error while sending message: "+err.Error(), "update_id", update.UpdateID)
+			return
+		}
 	}
 
 	if err := tg.store.UpdateUser(user); err != nil {
@@ -216,7 +224,10 @@ func (tg *TelegramClient) handleCuratorUpdate(update tgbotapi.Update) {
 	}
 
 	cb := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-	tg.bot.Send(cb)
+	if _, err := tg.bot.Request(cb); err != nil {
+		tg.HandleError("error while sending callback: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
 
 	del := tgbotapi.NewDeleteMessage(update.FromChat().ID, update.CallbackQuery.Message.MessageID)
 	if _, err := tg.bot.Request(del); err != nil {

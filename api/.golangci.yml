@@ -1,0 +1,19 @@
+run:
+  end_config_section: true
+  run_on_save: false # Set to true to lint on save
+settings:
+  go.lint.gas: all
+  go.lint.gofmt: true
+  go.lint.gosimple: true
+  go.lint.gotype: true
+  go.lint.maintidx: true
+  go.lint.staticcheck: true
+  go.lint.buildconly: true
+  go.lint.cyclop: true
+  go.lint.errcheck: true
+  go.lint.gocyclo: true
+  go.lint.gocompare: true
+  go.lint.gosec: true
+  go.lint.govet: true
+  go.lint.unmarshal: true
+  go.lint.vet: true

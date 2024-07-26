@@ -24,7 +24,9 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 						tgbotapi.NewKeyboardButton("Создать рассылку"),
 					),
 				)
-				tg.bot.Send(msg)
+				if _, err := tg.bot.Send(msg); err != nil {
+					tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+				}
 			} else if update.Message.Text == "Создать рассылку" {
 				tg.admins[update.FromChat().ID] = Admin{state: StateWaitingUserTypePick}
 				msg := tgbotapi.NewMessage(update.FromChat().ID, "Кому отправить сообщение?")
@@ -38,23 +40,31 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 						tgbotapi.NewInlineKeyboardButtonData("Всем пользователям", "all"),
 					),
 				)
-				tg.bot.Send(msg)
+				if _, err := tg.bot.Send(msg); err != nil {
+					tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+				}
 			}
 		}
 	case StateWaitingUserTypePick:
 		if update.CallbackQuery != nil {
 			cb := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-			tg.bot.Send(cb)
+			if _, err := tg.bot.Send(cb); err != nil {
+				tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+			}
 
 			del := tgbotapi.NewDeleteMessage(update.FromChat().ID, update.CallbackQuery.Message.MessageID)
-			tg.bot.Send(del)
+			if _, err := tg.bot.Send(del); err != nil {
+				tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+			}
 
 			info := AdminRequestSending{}
 			info.UserType = update.CallbackData()
 			admin.info = info
 			tg.admins[update.FromChat().ID] = Admin{state: StateWaitingMessageText, info: info}
 			msg := tgbotapi.NewMessage(update.FromChat().ID, "Теперь отправь сообщение, которое нужно переслать всем пользователям👇")
-			tg.bot.Send(msg)
+			if _, err := tg.bot.Send(msg); err != nil {
+				tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+			}
 		}
 	case StateWaitingMessageText:
 		if update.Message != nil {
@@ -76,14 +86,19 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 			tg.admins[update.FromChat().ID] = admin
 
 			msg := tgbotapi.NewMessage(update.FromChat().ID, "Теперь добавь вложения, если они нужны. Это могут быть картинки, гифка или файлы. Когда отправишь все вложения, напиши в чате 'стоп'")
-			tg.bot.Send(msg)
+			if _, err := tg.bot.Send(msg); err != nil {
+				tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+			}
 		}
 	case StateWaitingMessageAttachment:
 		info, ok := admin.info.(AdminRequestSending)
 		if !ok {
 			tg.HandleError("error while getting admin info: wrong message type", "update_id", update.UpdateID)
 			msg := tgbotapi.NewMessage(update.FromChat().ID, "Сорри, что-то пошло не так😬 Давай попробуем сначала.")
-			tg.bot.Send(msg)
+			if _, err := tg.bot.Send(msg); err != nil {
+				tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+				return
+			}
 			tg.admins[update.FromChat().ID] = Admin{state: StateNothing}
 		}
 		switch {
@@ -110,7 +125,10 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 					tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
 				),
 			)
-			tg.bot.Send(msg)
+			if _, err := tg.bot.Send(msg); err != nil {
+				tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+				return
+			}
 			admin.info = info
 			tg.admins[update.FromChat().ID] = admin
 		case update.Message.Text == "стоп":
@@ -128,7 +146,10 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 							tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
 						),
 					)
-					tg.bot.Send(msg)
+					if _, err := tg.bot.Send(msg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 
 				} else {
 					mediaGroup := make([]interface{}, len(info.Attachments))
@@ -136,7 +157,10 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 						mediaGroup[i] = tgbotapi.NewInputMediaPhoto(info.Attachments[i])
 					}
 					mg := tgbotapi.NewMediaGroup(update.FromChat().ID, mediaGroup)
-					tg.bot.Send(mg)
+					if _, err := tg.bot.Send(mg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 					msg := tgbotapi.NewMessage(update.FromChat().ID, info.Message.Text)
 					msg.Entities = info.Message.Entities
 					msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
@@ -145,12 +169,18 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 							tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
 						),
 					)
-					tg.bot.Send(msg)
+					if _, err := tg.bot.Send(msg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 				}
 			case AttachmentFile:
 				for _, file := range info.Attachments {
 					msg := tgbotapi.NewDocument(update.FromChat().ID, file)
-					tg.bot.Send(msg)
+					if _, err := tg.bot.Send(msg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 				}
 				msg := tgbotapi.NewMessage(update.FromChat().ID, info.Message.Text)
 				msg.Entities = info.Message.Entities
@@ -160,17 +190,26 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 						tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
 					),
 				)
-				tg.bot.Send(msg)
+				if _, err := tg.bot.Send(msg); err != nil {
+					tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+					return
+				}
 			}
 		}
 	case StateWaitingSending:
 		cb := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-		tg.bot.Send(cb)
+		if _, err := tg.bot.Send(cb); err != nil {
+			tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+			return
+		}
 
 		tg.admins[update.FromChat().ID] = Admin{state: StateNothing}
 
 		del := tgbotapi.NewDeleteMessage(update.FromChat().ID, update.CallbackQuery.Message.MessageID)
-		tg.bot.Send(del)
+		if _, err := tg.bot.Send(del); err != nil {
+			tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+			return
+		}
 
 		info, ok := admin.info.(AdminRequestSending)
 		if !ok {
@@ -183,7 +222,10 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 
 		if update.CallbackQuery.Data == "cancel" {
 			msg := tgbotapi.NewMessage(update.FromChat().ID, "Отмена отправки сообщения")
-			tg.bot.Send(msg)
+			if _, err := tg.bot.Send(msg); err != nil {
+				tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+				return
+			}
 			tg.admins[update.FromChat().ID] = Admin{state: StateNothing}
 			return
 		}
@@ -199,18 +241,26 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 					msg := tgbotapi.NewPhoto(user.UserID, info.Attachments[0])
 					msg.CaptionEntities = info.Message.Entities
 					msg.Caption = info.Message.Text
-					tg.bot.Send(msg)
-
+					if _, err := tg.bot.Send(msg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 				} else {
 					mediaGroup := make([]interface{}, len(info.Attachments))
 					for i := range info.Attachments {
 						mediaGroup[i] = tgbotapi.NewInputMediaPhoto(info.Attachments[i])
 					}
 					mg := tgbotapi.NewMediaGroup(user.UserID, mediaGroup)
-					tg.bot.Send(mg)
+					if _, err := tg.bot.Send(mg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 					msg := tgbotapi.NewMessage(user.UserID, info.Message.Text)
 					msg.Entities = info.Message.Entities
-					tg.bot.Send(msg)
+					if _, err := tg.bot.Send(msg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 				}
 			}
 
@@ -222,7 +272,10 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 			for _, user := range users {
 				for _, file := range info.Attachments {
 					msg := tgbotapi.NewDocument(user.UserID, file)
-					tg.bot.Send(msg)
+					if _, err := tg.bot.Send(msg); err != nil {
+						tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+						return
+					}
 				}
 				msg := tgbotapi.NewMessage(user.UserID, info.Message.Text)
 				msg.Entities = info.Message.Entities
@@ -232,7 +285,10 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 						tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
 					),
 				)
-				tg.bot.Send(msg)
+				if _, err := tg.bot.Send(msg); err != nil {
+					tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+					return
+				}
 			}
 
 		case AttachmentAnimation:
@@ -243,11 +299,17 @@ func (tg *TelegramClient) handleAdminUpdate(update tgbotapi.Update) {
 			for _, user := range users {
 				msg := tgbotapi.NewAnimation(user.UserID, info.Attachments[0])
 				msg.CaptionEntities = info.Message.Entities
-				tg.bot.Send(msg)
+				if _, err := tg.bot.Send(msg); err != nil {
+					tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+					return
+				}
 			}
 		}
 		msg := tgbotapi.NewMessage(update.FromChat().ID, "Рассылка запущена😉")
-		tg.bot.Send(msg)
+		if _, err := tg.bot.Send(msg); err != nil {
+			tg.HandleError("error sending message: "+err.Error(), "update id", update.UpdateID)
+			return
+		}
 
 	}
 
@@ -281,8 +343,6 @@ func (tg *TelegramClient) SendHomework(uid int64, taskID string, message string)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(curatorID)
 
 	text := fmt.Sprintf("**Пользователь** [%s](%s) **отправил домашнюю работу к задаче %s:\n\n%s", user.FIO, "t.me/"+user.Username, task.Title, utils.EscapeMarkdownV2(message))
 
