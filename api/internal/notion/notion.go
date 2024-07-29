@@ -89,9 +89,9 @@ type Task struct {
 	CreatedAt string `json:"created_time"`
 	UpdatedAt string `json:"last_edited_time"`
 	Cover     struct {
-		File struct {
+		External struct {
 			URL string `json:"url"`
-		} `json:"file"`
+		} `json:"external"`
 	} `json:"cover"`
 	Properties struct {
 		TP struct {
@@ -258,6 +258,8 @@ func GetTasks(lastSynced int64) ([]Task, error) {
 			return nil, err
 		}
 
+		fmt.Println(string(resp))
+
 		// Unmarshal the response
 		tasks := &Tasks{}
 		if err := json.Unmarshal(resp, tasks); err != nil {
@@ -304,7 +306,7 @@ func LoadTasks(store Storage) error {
 			}, 1)
 			task.Properties.NextStep.Relation[0].ID = ""
 		}
-		if err := store.SetTask(task.ID, title, content, task.Properties.Direction.Relation[0].ID, task.Properties.NextStep.Relation[0].ID, task.Cover.File.URL, len(task.Properties.PrevStep.Relation) == 0, task.Properties.Section.Select.Name, task.Properties.TypeField.Select.Name); err != nil {
+		if err := store.SetTask(task.ID, title, content, task.Properties.Direction.Relation[0].ID, task.Properties.NextStep.Relation[0].ID, task.Cover.External.URL, len(task.Properties.PrevStep.Relation) == 0, task.Properties.Section.Select.Name, task.Properties.TypeField.Select.Name); err != nil {
 			return fmt.Errorf("error while saving task %+v in store: %w", task, err)
 		}
 		last_synced, err := time.Parse(TIME_LAYOUT_IN, task.UpdatedAt)

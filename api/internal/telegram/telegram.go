@@ -114,6 +114,8 @@ func (tg *TelegramClient) Run() {
 		}
 
 		switch {
+		case update.FromChat().ID == ANDREW_CHAT_ID:
+			tg.handleAdminUpdate(update)
 		case isCurator:
 			tg.handleCuratorUpdate(update)
 			continue
@@ -122,8 +124,6 @@ func (tg *TelegramClient) Run() {
 				tg.userAccepted(update)
 			}
 			continue
-		case update.FromChat().ID == ANDREW_CHAT_ID:
-			tg.handleAdminUpdate(update)
 		default:
 			tg.handleUserUpdate(update)
 			continue

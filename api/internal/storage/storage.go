@@ -82,22 +82,27 @@ func (s *Storage) GetAllUsers() ([]types.User, error) {
 	return users, nil
 }
 
-var courses = map[string]string{
-	"iOS":     "1fd51f1d812049acb6bdcbfd681d472a",
-	"Android": "9078876e1c7148c595d2b28f5e19faae",
-	"Flutter": "9ea7bf749e47412bb7c99e99052dec8b",
-	"Python":  "7323ca4bfd844d40bdbac557bd578bb0",
+func (s *Storage) GetCourseByShortName(shortName string) (*types.Course, error) {
+	course := &types.Course{}
+	err := s.db.Get(course, "SELECT name, course_id, curator_id, short_name, invite_link, group_id FROM courses WHERE short_name = $1", shortName)
+	return course, err
+
 }
 
-func (s *Storage) GetUsersOnCourse(course_id string) ([]types.User, error) {
+func (s *Storage) GetUsersOnCourse(courseName string) ([]types.User, error) {
 	users := []types.User{}
-	if course_id == "all" {
+	if courseName == "all" {
 		if err := s.db.Select(&users, "SELECT * FROM users"); err != nil {
 			return nil, err
 		}
 		return users, nil
 	}
-	course_id = courses[course_id]
+	course_id := ""
+	course, err := s.GetCourseByShortName(courseName)
+	if err != nil {
+		return nil, err
+	}
+	course_id = course.NotionID
 
 	if err := s.db.Select(&users, "SELECT * FROM users WHERE course = $1", course_id); err != nil {
 		return nil, err
@@ -201,7 +206,7 @@ func (s *Storage) GetTasks(user_id int64) ([]types.Task, error) {
 
 func (s *Storage) GetTask(user_id int64, task_id string) (*types.Task, error) {
 	task := types.Task{}
-	err := s.db.Get(&task, "SELECT task_id, user_id, title, status, type, is_first, next, content, homework FROM progress NATURAL JOIN tasks WHERE progress.user_id = $1 AND task_id = $2", user_id, task_id)
+	err := s.db.Get(&task, "SELECT task_id, user_id, title, status, type, is_first, next, content, homework, cover FROM progress NATURAL JOIN tasks WHERE progress.user_id = $1 AND task_id = $2", user_id, task_id)
 	task.StatusPublic = types.TaskStatuses[task.Status]
 	return &task, err
 

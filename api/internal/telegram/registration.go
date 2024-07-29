@@ -377,7 +377,7 @@ func (tg *TelegramClient) userAccepted(update tgbotapi.Update) {
 	}
 
 	del := tgbotapi.NewDeleteMessage(callbackQuery.From.ID, callbackQuery.Message.MessageID)
-	if _, err := tg.bot.Send(del); err != nil {
+	if _, err := tg.bot.Request(del); err != nil {
 		tg.HandleError("error sending message: "+err.Error(), "update_id", update.UpdateID)
 		return
 	}
