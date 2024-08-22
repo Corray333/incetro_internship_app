@@ -27,6 +27,7 @@ func Run(tg *telegram.TelegramClient, store *storage.Storage) {
 		AllowedOrigins:   []string{"http://*", "https://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Set-Cookie", "Refresh", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Set-Cookie", "Refresh", "X-CSRF-Token"},
 		AllowCredentials: true,
 		MaxAge:           300, // Максимальное время кеширования предзапроса (в секундах)
 	}))

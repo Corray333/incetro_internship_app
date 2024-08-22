@@ -12,6 +12,27 @@ import (
 	"github.com/Corray333/internship_app/internal/types"
 )
 
+func GroupTasks(tasks []types.Task) [][]types.Task {
+	if len(tasks) == 0 {
+		return [][]types.Task{}
+	}
+	sections := [][]types.Task{
+		{
+			tasks[0],
+		},
+	}
+	currentSection := tasks[0].Section
+	for _, task := range tasks[1:] {
+		if task.Section == currentSection {
+			sections[len(sections)-1] = append(sections[len(sections)-1], task)
+		} else {
+			sections = append(sections, []types.Task{task})
+			currentSection = task.Section
+		}
+	}
+	return sections
+}
+
 func DownloadImage(url string) error {
 	// Create the images directory if it doesn't exist
 	err := os.MkdirAll("../public/images", os.ModePerm)
@@ -46,16 +67,26 @@ func DownloadImage(url string) error {
 }
 
 // findFirsttypes.Task находит первую задачу в слайсе задач
-func findFirstTask(tasks []types.Task) *types.Task {
+func findStartingTask(tasks []types.Task) *types.Task {
+	// Создаем множество задач, которые являются значениями в поле Next у других задач
+	nextTasks := make(map[string]bool)
 	for _, task := range tasks {
-		if task.IsFirst {
+		if task.Next != nil {
+			nextTasks[*task.Next] = true
+		}
+	}
+
+	// Ищем задачу, которая не указана в поле Next ни у одной из задач
+	for _, task := range tasks {
+		if !nextTasks[task.TaskID] {
 			return &task
 		}
 	}
+
 	return nil
 }
 
-// buildtypes.TaskMap строит карту задач по их types.TaskID для быстрого доступа
+// buildTaskMap строит карту задач по их types.TaskID для быстрого доступа
 func buildTaskMap(tasks []types.Task) map[string]*types.Task {
 	taskMap := make(map[string]*types.Task)
 	for i := range tasks {
@@ -64,8 +95,11 @@ func buildTaskMap(tasks []types.Task) map[string]*types.Task {
 	return taskMap
 }
 
-// topologicalSort выполняет топологическую сортировку задач
+// TopologicalSort выполняет топологическую сортировку задач
 func TopologicalSort(tasks []types.Task) ([]types.Task, error) {
+	if len(tasks) == 0 {
+		return []types.Task{}, nil
+	}
 	taskMap := buildTaskMap(tasks)
 	var sortedTasks []types.Task
 	visited := make(map[string]bool)
@@ -90,15 +124,16 @@ func TopologicalSort(tasks []types.Task) ([]types.Task, error) {
 		return nil
 	}
 
-	firstTask := findFirstTask(tasks)
-	if firstTask == nil {
-		return nil, fmt.Errorf("first task not found")
+	startingTask := findStartingTask(tasks)
+	if startingTask == nil {
+		return nil, fmt.Errorf("starting task not found")
 	}
 
-	if err := visit(firstTask); err != nil {
+	if err := visit(startingTask); err != nil {
 		return nil, err
 	}
 
+	// Разворачиваем список, так как задачи были добавлены в обратном порядке
 	slices.Reverse(sortedTasks)
 	return sortedTasks, nil
 }

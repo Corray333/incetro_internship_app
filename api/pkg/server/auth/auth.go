@@ -19,6 +19,7 @@ import (
 )
 
 func CheckTelegramAuth(initData string) (int64, bool) {
+
 	parsedData, _ := url.QueryUnescape(initData)
 	chunks := strings.Split(parsedData, "&")
 	var dataPairs [][]string

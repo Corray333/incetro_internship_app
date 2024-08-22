@@ -43,6 +43,7 @@ type Task struct {
 	TaskID      string  `json:"id" db:"task_id"`
 	UserID      int64   `json:"-" db:"user_id"`
 	Title       string  `json:"title" db:"title"`
+	Description string  `json:"description" db:"description"`
 	Status      int     `json:"-" db:"status"`
 	Content     string  `json:"content,omitempty" db:"content"`
 	CourseID    string  `json:"courseID,omitempty" db:"course_id"`

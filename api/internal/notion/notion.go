@@ -258,8 +258,6 @@ func GetTasks(lastSynced int64) ([]Task, error) {
 			return nil, err
 		}
 
-		fmt.Println(string(resp))
-
 		// Unmarshal the response
 		tasks := &Tasks{}
 		if err := json.Unmarshal(resp, tasks); err != nil {

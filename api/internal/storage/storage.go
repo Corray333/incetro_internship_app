@@ -204,9 +204,27 @@ func (s *Storage) GetTasks(user_id int64) ([]types.Task, error) {
 	return tasks, err
 }
 
+func (s *Storage) GetTasksDone(user_id int64) ([]types.Task, error) {
+	tasks := []types.Task{}
+	err := s.db.Select(&tasks, "SELECT task_id, title, description, status, type, is_first, next, section FROM progress NATURAL JOIN tasks WHERE progress.user_id = $1 AND status = 4", user_id)
+	for i := 0; i < len(tasks); i++ {
+		tasks[i].StatusPublic = types.TaskStatuses[tasks[i].Status]
+	}
+	return tasks, err
+}
+
+func (s *Storage) GetTasksNotDone(user_id int64) ([]types.Task, error) {
+	tasks := []types.Task{}
+	err := s.db.Select(&tasks, "SELECT task_id, title, description, status, type, is_first, next, section FROM progress NATURAL JOIN tasks WHERE progress.user_id = $1 AND status != 4", user_id)
+	for i := 0; i < len(tasks); i++ {
+		tasks[i].StatusPublic = types.TaskStatuses[tasks[i].Status]
+	}
+	return tasks, err
+}
+
 func (s *Storage) GetTask(user_id int64, task_id string) (*types.Task, error) {
 	task := types.Task{}
-	err := s.db.Get(&task, "SELECT task_id, user_id, title, status, type, is_first, next, content, homework, cover FROM progress NATURAL JOIN tasks WHERE progress.user_id = $1 AND task_id = $2", user_id, task_id)
+	err := s.db.Get(&task, "SELECT task_id, user_id, title, status, type, is_first, next, content, homework, cover, section FROM progress NATURAL JOIN tasks WHERE progress.user_id = $1 AND task_id = $2", user_id, task_id)
 	task.StatusPublic = types.TaskStatuses[task.Status]
 	return &task, err
 

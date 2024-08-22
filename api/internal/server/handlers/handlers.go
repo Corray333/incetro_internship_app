@@ -16,6 +16,8 @@ import (
 
 type Storage interface {
 	GetTasks(user_id int64) ([]types.Task, error)
+	GetTasksDone(user_id int64) ([]types.Task, error)
+	GetTasksNotDone(user_id int64) ([]types.Task, error)
 	GetTask(user_id int64, task_id string) (*types.Task, error)
 	SaveHomework(user_id int64, taskID string, homework string) error
 	SetRefresh(uid int64, refresh string) error
@@ -45,13 +47,34 @@ func ListTasks(store Storage) http.HandlerFunc {
 			return
 		}
 
+		status := r.URL.Query().Get("status")
+
 		uid := creds.ID
 
-		tasks, err := store.GetTasks(uid)
-		if err != nil {
-			slog.Error("error while getting tasks: " + err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		tasks := []types.Task{}
+		var err error
+
+		if status == "Done" {
+			tasks, err = store.GetTasksDone(uid)
+			if err != nil {
+				slog.Error("error while getting tasks: " + err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else if status == "Not done" {
+			tasks, err = store.GetTasksNotDone(uid)
+			if err != nil {
+				slog.Error("error while getting tasks: " + err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			tasks, err = store.GetTasks(uid)
+			if err != nil {
+				slog.Error("error while getting tasks: " + err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		tasks, err = utils.TopologicalSort(tasks)
@@ -61,9 +84,11 @@ func ListTasks(store Storage) http.HandlerFunc {
 			return
 		}
 
+		sections := utils.GroupTasks(tasks)
+
 		w.Header().Set("Content-Type", "application/json")
 
-		if err := json.NewEncoder(w).Encode(tasks); err != nil {
+		if err := json.NewEncoder(w).Encode(sections); err != nil {
 			slog.Error("error while encoding tasks: " + err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -93,7 +118,13 @@ func GetTask(store Storage) http.HandlerFunc {
 			return
 		}
 
-		creds := r.Context().Value("creds").(auth.Credentials)
+		creds, ok := r.Context().Value("creds").(auth.Credentials)
+		if !ok {
+			slog.Error("error while getting credentials")
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
 		if creds.ID == 0 {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -209,6 +240,9 @@ func Login(store Storage) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		fmt.Println()
+		fmt.Println("Login request: ", req)
+		fmt.Println()
 		uid, allowed := auth.CheckTelegramAuth(req.InitData)
 		if !allowed {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -265,7 +299,7 @@ func Login(store Storage) http.HandlerFunc {
 	}
 }
 
-// @Summary Обновить токена
+// @Summary Обновить токены
 // @Description Обновить access и refresh токены
 // @Tags users
 // @Accept json

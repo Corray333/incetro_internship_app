@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    // other options...
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
+    ]
+  },
+  "types": [
+    "vuex/types"
+  ],
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
+}

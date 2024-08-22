@@ -6,8 +6,6 @@ import (
 
 	"github.com/Corray333/internship_app/internal/app"
 	"github.com/Corray333/internship_app/internal/config"
-	"github.com/Corray333/internship_app/internal/notion"
-	"github.com/Corray333/internship_app/internal/storage"
 	"github.com/spf13/viper"
 )
 
@@ -20,8 +18,8 @@ func main() {
 	fmt.Println("We're getting started...")
 	fmt.Println()
 
-	store := storage.New()
-	fmt.Println(notion.Sync(store))
+	// store := storage.New()
+	// fmt.Println(notion.Sync(store))
 	app.New().Run()
 
 }

@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: Gilroy;
+  src: url(./Gilroy-Heavy.ttf);
+  font-weight: black;
+}
+
+@font-face {
+  font-family: Gilroy;
+  src: url(./Gilroy-Bold.ttf);
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: Gilroy;
+  src: url(./Gilroy-Medium.ttf);
+  font-weight: medium;
+}
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Gilroy, sans-serif;
+}
