@@ -464,9 +464,7 @@ func (tg *TelegramClient) SendNewHomework(uid int64, taskID string, message stri
 
 	if oldMsg != 0 {
 		del := tgbotapi.NewDeleteMessage(curatorID, int(oldMsg))
-		if _, err := tg.bot.Request(del); err != nil {
-			return err
-		}
+		tg.bot.Request(del)
 	}
 
 	msg := tgbotapi.NewMessage(curatorID, text)

@@ -387,7 +387,7 @@ func (tg *TelegramClient) userAccepted(update tgbotapi.Update) {
 
 	// Send message to the user that their account has been verified
 	msg := tgbotapi.NewMessage(int64(chatID), "Поздравляем, ты принят на обучение🥳 Чтобы преступить к обучению, перейди в наше приложение👇")
-	loginButton := tgbotapi.NewInlineKeyboardButtonURL("Начать🔥", "https://t.me/incetro_management_bot/app")
+	loginButton := tgbotapi.NewInlineKeyboardButtonURL("Начать🔥", "https://t.me/incetro_internship_test_bot/app")
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(loginButton))
 	msg.ReplyMarkup = keyboard
 	if _, err := tg.bot.Request(msg); err != nil {
