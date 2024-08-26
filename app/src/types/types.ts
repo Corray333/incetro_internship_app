@@ -6,6 +6,7 @@ export class Task {
     type: string = ""
     status: string = ""
     description: string = ""
+    showBlock: boolean = false
     cover?: string = ""
     homework?: string = ""
     content?: string = ""

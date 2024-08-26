@@ -38,7 +38,7 @@ func Run(tg *telegram.TelegramClient, store *storage.Storage) {
 		r.Get("/api/tasks", handlers.ListTasks(store))
 		r.Get("/api/tasks/{task_id}", handlers.GetTask(store))
 		r.Post("/api/tasks/{task_id}/homework", handlers.SaveHomework(tg, store))
-		r.Patch("/api/tasks/{task_id}/homework", handlers.SaveHomework(tg, store))
+		r.Patch("/api/tasks/{task_id}/homework", handlers.UpdateHomework(tg, store))
 		r.Patch("/api/tasks/{task_id}", handlers.TaskDone(store))
 	})
 

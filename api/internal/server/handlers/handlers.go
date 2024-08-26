@@ -172,7 +172,6 @@ type SaveHomeworkRequest struct {
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/tasks/{task_id}/homework [post]
-// @Router /api/tasks/{task_id}/homework [patch]
 func SaveHomework(tg *telegram.TelegramClient, store Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -206,6 +205,63 @@ func SaveHomework(tg *telegram.TelegramClient, store Storage) http.HandlerFunc {
 		}
 
 		if err := tg.SendHomework(uid, taskID, req.Homework); err != nil {
+			slog.Error("error while sending homework: " + err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			tg.HandleError("error while sending homework: "+err.Error(), "user_id", uid, "task_id", taskID)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+
+	}
+}
+
+// @Summary Изменить домашнюю работу
+// @Description Изменить домашнюю работу для определенной задачи
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Access JWT"
+// @Param task_id path string true "Task ID"
+// @Param request body SaveHomeworkRequest true "Homework Data"
+// @Success 201 {string} string "Created"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/tasks/{task_id}/homework [patch]
+func UpdateHomework(tg *telegram.TelegramClient, store Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		creds := r.Context().Value("creds").(auth.Credentials)
+		if creds.ID == 0 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		taskID := chi.URLParam(r, "task_id")
+		if taskID == "" {
+			slog.Error("error while getting task id")
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		req := &SaveHomeworkRequest{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			slog.Error("error while decoding save homework request: " + err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		uid := creds.ID
+
+		if err := store.SaveHomework(uid, taskID, req.Homework); err != nil {
+			slog.Error("error while saving homework: " + err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err := tg.SendNewHomework(uid, taskID, req.Homework); err != nil {
 			slog.Error("error while sending homework: " + err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			tg.HandleError("error while sending homework: "+err.Error(), "user_id", uid, "task_id", taskID)

@@ -3,8 +3,10 @@ import { ref, onBeforeMount, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import { Task } from '../types/types'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
+import { renewTokens } from '@/utils/helpers'
 import markdownit from 'markdown-it'
+import taskLists from 'markdown-it-task-lists'
 
 const store = useStore()
 
@@ -26,6 +28,12 @@ const loadTask = async () => {
         })
     } catch (error) {
         console.log(error)
+        let err = error as AxiosError
+        if (err.status == 401) {
+            if (await renewTokens()) {
+                loadTask()
+            }
+        }
     }
 }
 
@@ -40,8 +48,49 @@ const taskDone = async () => {
                 Authorization: store.state.authorization
             }
         })
-        console.log('/tasks/' + task.value.next)
-        router.push('/tasks/' + task.value.next)
+        if (task.value.next != ""){
+            router.push('/tasks/' + task.value.next)
+        } else{
+            router.push('/')
+        }
+        
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const sendHomework = async () => {
+    if (task.value.homework == "") {
+        alert("Заполни поле с домашней работой")
+    }
+
+    try {
+        await axios.post(`${import.meta.env.VITE_API_URL}/tasks/` + route.params.task_id + `/homework`, {
+            homework: task.value.homework
+        }, {
+            headers: {
+                Authorization: store.state.authorization
+            }
+        })
+        router.push('/')
+    } catch (error) {
+        console.log(error)
+    }
+}
+const updateHomework = async () => {
+    if (task.value.homework == "") {
+        alert("Заполни поле с домашней работой")
+    }
+
+    try {
+        await axios.patch(`${import.meta.env.VITE_API_URL}/tasks/` + route.params.task_id + `/homework`, {
+            homework: task.value.homework
+        }, {
+            headers: {
+                Authorization: store.state.authorization
+            }
+        })
+        router.push('/')
     } catch (error) {
         console.log(error)
     }
@@ -51,6 +100,11 @@ const md = markdownit({
     html: true,
     linkify: true,
     typographer: true
+}).use(taskLists, {
+    // Параметры конфигурации (опционально)
+    enabled: true,           // Включить плагин (по умолчанию включен)
+    label: true,             // Добавляет <label> вокруг чекбокса (по умолчанию false)
+    labelAfter: false        // Располагает <label> после чекбокса (по умолчанию false)
 })
 
 const task = ref<Task>(new Task())
@@ -65,14 +119,19 @@ const task = ref<Task>(new Task())
             <p class=" text-half_dark">{{ task.description }}</p>
             <hr class=" my-2">
             <div class="flex flex-col gap-2" v-html="task.content ? md.render(task.content) : ''"></div>
-            <div v-if="task.status != 'Выполнена' && task.status != 'Не начато'">
+            <div v-if="task.status != 'Выполнено' && task.status != 'Не начато'">
                 <div v-if="task.type == 'Теория'" class="w-full mt-2">
                     <button @click="taskDone" class=" w-full p-4 bg-accent text-white rounded-md">Следующий
                         этап</button>
                 </div>
                 <div v-else>
-                    <textarea v-model="task.homework" :disabled="!(task.status == 'В процессе')" name="" id="" cols="30" rows="10" placeholder="Поле для домашнего задания" class=" p-2 border-2 w-full outline-none rounded-lg"></textarea>
-                    <button v-if="task.status == 'В процессе'" @click="taskDone" class=" w-full p-4 bg-accent text-white rounded-md">Отправить</button>
+                    <textarea v-model="task.homework" name="" id="" cols="30" rows="10"
+                        placeholder="Поле для домашнего задания"
+                        class=" p-2 border-2 w-full outline-none rounded-lg"></textarea>
+                    <button v-if="task.status == 'В процессе'" @click="sendHomework"
+                        class=" w-full p-4 bg-accent text-white rounded-md">Отправить</button>
+                    <button v-else @click="updateHomework"
+                        class=" w-full p-4 bg-accent text-white rounded-md">Исправить</button>
                 </div>
             </div>
         </div>
@@ -111,7 +170,7 @@ const task = ref<Task>(new Task())
         list-style-position: inside;
     }
 
-    ol{
+    ol {
         list-style: decimal;
         list-style-position: outside;
         padding-left: 1rem;

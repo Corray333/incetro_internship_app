@@ -28,6 +28,8 @@ type Storage interface {
 	RejectHomework(uid int64, taskID string) error
 	SetUpdateData(updateID int, data string) error
 	GetUpdateData(updateID int) (string, error)
+	SetHomeworkNotifyMsgID(userID int64, taskID string, msgID int) error
+	GetHomeworkNotifyMsgID(userID int64, taskID string) (int64, error)
 }
 
 const (
@@ -104,6 +106,10 @@ func (tg *TelegramClient) Run() {
 
 	for update := range updates {
 		if update.Message == nil && update.CallbackQuery == nil {
+			continue
+		}
+
+		if update.FromChat().Type != "private" {
 			continue
 		}
 
@@ -195,6 +201,11 @@ func (tg *TelegramClient) handleCuratorUpdate(update tgbotapi.Update) {
 	task, err := tg.store.GetTask(req.UserID, req.TaskID)
 	if err != nil {
 		tg.HandleError("error while getting task: "+err.Error(), "update_id", update.UpdateID)
+		return
+	}
+
+	if err := tg.store.SetHomeworkNotifyMsgID(task.UserID, task.TaskID, update.CallbackQuery.Message.MessageID); err != nil {
+		tg.HandleError("error while setting homework notify msg id: "+err.Error(), "update_id", update.UpdateID)
 		return
 	}
 

@@ -420,6 +420,72 @@ func (tg *TelegramClient) SendHomework(uid int64, taskID string, message string)
 		return err
 	}
 
+	if err := tg.store.SetHomeworkNotifyMsgID(user.UserID, task.TaskID, sent.MessageID); err != nil {
+		return err
+	}
+
+	if err := tg.store.SetUpdateData(sent.MessageID, string(data)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tg *TelegramClient) SendNewHomework(uid int64, taskID string, message string) error {
+	user, err := tg.store.GetUserByID(uid)
+	if err != nil {
+		return err
+	}
+
+	curatorID, err := tg.store.GetCuratorOfUser(uid)
+	if err != nil {
+		return err
+	}
+
+	task, err := tg.store.GetTask(uid, taskID)
+	if err != nil {
+		return err
+	}
+
+	text := fmt.Sprintf("**Пользователь** [%s](%s) **исправил домашнюю работу к задаче %s:\n\n%s", user.FIO, "t.me/"+user.Username, task.Title, utils.EscapeMarkdownV2(message))
+
+	data, err := json.Marshal(HomeworkCheck{
+		TaskID: taskID,
+		UserID: uid,
+	})
+	if err != nil {
+		return err
+	}
+
+	oldMsg, err := tg.store.GetHomeworkNotifyMsgID(user.UserID, task.TaskID)
+	if err != nil {
+		return err
+	}
+
+	if oldMsg != 0 {
+		del := tgbotapi.NewDeleteMessage(curatorID, int(oldMsg))
+		if _, err := tg.bot.Request(del); err != nil {
+			return err
+		}
+	}
+
+	msg := tgbotapi.NewMessage(curatorID, text)
+	msg.ParseMode = tgbotapi.ModeMarkdown
+	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Принять", HomeworkStatusApproved),
+			tgbotapi.NewInlineKeyboardButtonData("Отклонить", HomeworkStatusRejected),
+		),
+	)
+	sent, err := tg.bot.Send(msg)
+	if err != nil {
+		return err
+	}
+
+	if err := tg.store.SetHomeworkNotifyMsgID(user.UserID, task.TaskID, sent.MessageID); err != nil {
+		return err
+	}
+
 	if err := tg.store.SetUpdateData(sent.MessageID, string(data)); err != nil {
 		return err
 	}

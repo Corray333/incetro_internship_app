@@ -176,15 +176,12 @@ func (s *Storage) SetCourse(course *types.Course) error {
 func (s *Storage) GiveTasks(user_id int64, course_id string) error {
 	_, err := s.db.Exec(`INSERT INTO progress (user_id, task_id, status)
 	SELECT 
-		u.user_id, 
-		t.task_id, 
+		$1, 
+		task_id, 
 		1
 	FROM 
-		users u
-	JOIN 
-		tasks t ON u.course = t.course_id
-	WHERE 
-		u.user_id = $1 and t.course_id = $2`, user_id, course_id)
+		tasks
+	WHERE course_id = $2`, user_id, course_id)
 
 	if err != nil {
 		return err
@@ -211,6 +208,17 @@ func (s *Storage) GetTasksDone(user_id int64) ([]types.Task, error) {
 		tasks[i].StatusPublic = types.TaskStatuses[tasks[i].Status]
 	}
 	return tasks, err
+}
+
+func (s *Storage) SetHomeworkNotifyMsgID(userID int64, taskID string, msgID int) error {
+	_, err := s.db.Exec("UPDATE progress SET homework_notify = $1 WHERE user_id = $2 AND task_id = $3", msgID, userID, taskID)
+	return err
+}
+
+func (s *Storage) GetHomeworkNotifyMsgID(userID int64, taskID string) (int64, error) {
+	var msgID int64
+	err := s.db.Get(&msgID, "SELECT homework_notify FROM progress WHERE user_id = $1 AND task_id = $2", userID, taskID)
+	return msgID, err
 }
 
 func (s *Storage) GetTasksNotDone(user_id int64) ([]types.Task, error) {

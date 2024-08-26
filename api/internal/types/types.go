@@ -27,7 +27,8 @@ var TaskStatuses = map[int]string{
 	TaskStatusNotStarted: "Не начато",
 	TaskStatusInProgress: "В процессе",
 	TaskStatusChecking:   "На проверке",
-	TaskStatusDone:       "Выполнена",
+	TaskStatusDone:       "Выполнено",
+	TaskStatusRejected:   "Отклонено",
 }
 
 type Course struct {

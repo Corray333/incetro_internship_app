@@ -1,53 +1,21 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import { useStore } from 'vuex'
-import { onBeforeMount } from 'vue'
-import axios from 'axios'
-declare const Telegram: any
+import { ref, onBeforeMount } from 'vue'
+import {renewTokens} from '@/utils/helpers'
+
+const authorized = ref<boolean>(false)
 
 const store = useStore()
 
 onBeforeMount(async () => {
-	let initData = ""
-	if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-		const tg = Telegram.WebApp;
-		initData = tg.initData;
-
-
-	} else {
-		console.log("Telegram Web App SDK не доступен.");
-	}
-
-
-
-	try {
-		const result = await axios.post(`${import.meta.env.VITE_API_URL}/users/refresh-tokens`, {},
-			{
-				withCredentials: true
-			}
-		)
-
-		store.commit('setAuthorization', result.headers['authorization'])
-
-	} catch (error) {
-		console.log(error)
-		try {
-			const result = await axios.post(`${import.meta.env.VITE_API_URL}/users/login`, {
-				initData: initData
-			}, {
-				withCredentials: true
-			})
-			store.commit('setAuthorization', result.headers['authorization'])
-		} catch (error) {
-			console.log(error)
-		}
-	}
+	authorized.value = await renewTokens()
 })
 </script>
 
 <template>
 	<main class=" w-full min-h-screen p-3 bg-gradient-to-b from-light to-half_light">
-		<RouterView />
+		<RouterView v-if="authorized" />
 	</main>
 </template>
 
