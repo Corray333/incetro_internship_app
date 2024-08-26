@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -159,4 +162,91 @@ func EscapeMarkdownV2(text string) string {
 		"!", "\\!",
 	)
 	return replacer.Replace(text)
+}
+
+func ProcessMarkdown(markdown string) (string, error) {
+	saveDir := "../public/files/"
+	serverURL := os.Getenv("FILES_URL")
+	// Регулярное выражение для поиска ссылок на файлы
+	re := regexp.MustCompile(`\((https://prod-files-secure[^\s)]+)\)`)
+
+	// Поиск всех совпадений
+	matches := re.FindAllStringSubmatch(markdown, -1)
+
+	// Пробегаем по всем найденным ссылкам
+	for _, match := range matches {
+		fileURL := match[1]
+		if fileURL == "" {
+			fileURL = match[3]
+		}
+
+		newFileName, err := SaveFileFromURL(fileURL, saveDir)
+		if err != nil {
+			return "", err
+		}
+
+		// Заменяем старую ссылку на новую
+		newURL := serverURL + newFileName
+		markdown = strings.Replace(markdown, fileURL, newURL, -1)
+	}
+
+	return markdown, nil
+}
+
+// SaveFileFromURL загружает файл по URL и сохраняет его с новым уникальным именем
+func SaveFileFromURL(fileURL, saveDir string) (string, error) {
+	parsedURL, err := url.Parse(fileURL)
+	if err != nil {
+		return "", err
+	}
+
+	// Получаем имя файла из URL
+	fileName := filepath.Base(parsedURL.Path)
+
+	// Генерируем случайную строку для уникального имени файла
+	randomSuffix := generateRandomString(16)
+	ext := filepath.Ext(fileName)
+	name := fileName[:len(fileName)-len(ext)]
+	newFileName := fmt.Sprintf("%s_%s%s", name, randomSuffix, ext)
+
+	// Загружаем файл
+	resp, err := http.Get(fileURL)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download file: %s", fileURL)
+	}
+
+	// Создаем файл в директории сохранения
+	newFilePath := filepath.Join(saveDir, newFileName)
+	newFile, err := os.Create(newFilePath)
+	if err != nil {
+		return "", err
+	}
+	defer newFile.Close()
+
+	// Копируем содержимое загруженного файла в новый файл
+	_, err = io.Copy(newFile, resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return newFileName, nil
+}
+
+// generateRandomString генерирует случайную строку заданной длины
+func generateRandomString(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	bytes := make([]byte, n)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < n; i++ {
+		bytes[i] = letters[int(bytes[i])%len(letters)]
+	}
+	return string(bytes)
 }

@@ -46,6 +46,9 @@ func Run(tg *telegram.TelegramClient, store *storage.Storage) {
 	router.Post("/api/users/login", handlers.Login(store))
 	router.Post("/api/users/refresh-tokens", handlers.RefreshTokens(store))
 
+	fs := http.FileServer(http.Dir("../public/files"))
+	router.Handle("/api/files/*", http.StripPrefix("/api/files", fs))
+
 	// TODO: add timeouts
 	fmt.Println("Port:", viper.GetString("port"))
 	server := http.Server{

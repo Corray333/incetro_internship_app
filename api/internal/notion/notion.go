@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Corray333/internship_app/internal/types"
+	"github.com/Corray333/internship_app/internal/utils"
 	"github.com/Corray333/internship_app/pkg/notion"
 	"github.com/spf13/viper"
 )
@@ -304,6 +305,12 @@ func LoadTasks(store Storage) error {
 			}, 1)
 			task.Properties.NextStep.Relation[0].ID = ""
 		}
+
+		content, err = utils.ProcessMarkdown(content)
+		if err != nil {
+			return err
+		}
+
 		if err := store.SetTask(task.ID, title, content, task.Properties.Direction.Relation[0].ID, task.Properties.NextStep.Relation[0].ID, task.Cover.External.URL, len(task.Properties.PrevStep.Relation) == 0, task.Properties.Section.Select.Name, task.Properties.TypeField.Select.Name); err != nil {
 			return fmt.Errorf("error while saving task %+v in store: %w", task, err)
 		}
