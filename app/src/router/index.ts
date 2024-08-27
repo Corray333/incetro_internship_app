@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+declare const Telegram: any
+import { renewTokens } from '@/utils/helpers'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,6 +22,14 @@ const router = createRouter({
       component: () => import('../views/TaskView.vue')
     }
   ]
+})
+
+router.beforeEach(async (to, from, next) => {
+  const tg = Telegram.WebApp
+	var BackButton = Telegram.WebApp.BackButton
+	BackButton.show() 
+
+  next()
 })
 
 export default router
