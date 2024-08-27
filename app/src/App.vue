@@ -19,7 +19,7 @@ onBeforeMount(async () => {
 	authorized.value = await renewTokens()
 
 	Telegram.WebApp.onEvent('backButtonClicked', function () {
-		if (window.history.state.back === null) {
+		if (window.history.length === 0) {
 			var BackButton = Telegram.WebApp.BackButton
 			BackButton.hide()
 		} else{
