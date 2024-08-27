@@ -141,6 +141,13 @@ const task = ref<Task>(new Task())
 
 <style>
 .task-article {
+    
+    word-wrap: break-word;
+
+    .contains-task-list{
+        list-style: none;
+    }
+
     code {
         text-wrap: wrap;
         font-family: 'Fira Code', monospace;

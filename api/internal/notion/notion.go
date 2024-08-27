@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/Corray333/internship_app/internal/types"
@@ -310,6 +311,12 @@ func LoadTasks(store Storage) error {
 		if err != nil {
 			return err
 		}
+
+		decodedBytes, err := url.QueryUnescape(content)
+		if err != nil {
+			return err
+		}
+		content = string(decodedBytes)
 
 		if err := store.SetTask(task.ID, title, content, task.Properties.Direction.Relation[0].ID, task.Properties.NextStep.Relation[0].ID, task.Cover.External.URL, len(task.Properties.PrevStep.Relation) == 0, task.Properties.Section.Select.Name, task.Properties.TypeField.Select.Name); err != nil {
 			return fmt.Errorf("error while saving task %+v in store: %w", task, err)

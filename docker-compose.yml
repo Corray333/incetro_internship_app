@@ -13,6 +13,11 @@ services:
     command: make run
     depends_on:
       - db
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   parser:
     image: node:latest
