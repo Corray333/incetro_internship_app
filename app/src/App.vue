@@ -3,13 +3,28 @@ import { RouterView } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, onBeforeMount } from 'vue'
 import {renewTokens} from '@/utils/helpers'
+declare const Telegram: any
+
+import {useRouter} from 'vue-router'
+
+const router = useRouter()
 
 const authorized = ref<boolean>(false)
-
+const temp = ref<string>("")
 const store = useStore()
 
 onBeforeMount(async () => {
+	const tg = Telegram.WebApp
+	temp.value = tg.initData
 	authorized.value = await renewTokens()
+	var BackButton = Telegram.WebApp.BackButton;
+	BackButton.show();
+	BackButton.onClick(function() {
+	  BackButton.hide();
+	});
+	Telegram.WebApp.onEvent('backButtonClicked', function() {
+	  router.back()
+	});
 })
 </script>
 
