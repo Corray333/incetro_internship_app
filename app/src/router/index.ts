@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 declare const Telegram: any
 import { renewTokens } from '@/utils/helpers'
 
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -27,7 +28,11 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const tg = Telegram.WebApp
 	var BackButton = Telegram.WebApp.BackButton
-	BackButton.show() 
+  if (to.name === 'home') {
+    BackButton.hide()
+  } else{
+    BackButton.show() 
+  }
 
   next()
 })
