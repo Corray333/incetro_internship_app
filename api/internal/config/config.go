@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log/slog"
 	"os"
 
 	"github.com/Corray333/internship_app/pkg/logger"
@@ -14,17 +13,11 @@ func MustInit(path string) {
 		panic(err)
 	}
 
-	setupLogger()
+	logger.SetupCustomLogger()
 
 	configPath := os.Getenv("CONFIG_PATH")
 	viper.SetConfigFile(configPath)
 	if err := viper.ReadInConfig(); err != nil {
 		panic(err)
 	}
-}
-
-func setupLogger() {
-	handler := logger.NewHandler(nil)
-	log := slog.New(handler)
-	slog.SetDefault(log)
 }
