@@ -19,7 +19,7 @@ import (
 
 func Run(tg *telegram.TelegramClient, store *storage.Storage) {
 	router := chi.NewMux()
-	router.Use(logger.NewLoggerMiddleware(slog.Default()))
+	router.Use(logger.NewLoggerMiddleware())
 	router.Use(middleware.RequestID)
 
 	// TODO: get allowed origins, headers and methods from cfg
