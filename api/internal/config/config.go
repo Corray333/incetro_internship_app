@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/Corray333/internship_app/pkg/server/logger"
+	"github.com/Corray333/internship_app/pkg/logger"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )

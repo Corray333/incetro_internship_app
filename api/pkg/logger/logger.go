@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -40,9 +42,10 @@ func colorize(colorCode int, v string) string {
 }
 
 type Handler struct {
-	h slog.Handler
-	b *bytes.Buffer
-	m *sync.Mutex
+	file *os.File
+	h    slog.Handler
+	b    *bytes.Buffer
+	m    *sync.Mutex
 }
 
 func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -65,6 +68,23 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 
 	level := r.Level.String() + ":"
 
+	attrs, err := h.computeAttrs(ctx, r)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := json.MarshalIndent(attrs, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error when marshaling attrs: %w", err)
+	}
+
+	fmt.Fprintln(h.file,
+		r.Time.Format(timeFormat),
+		level,
+		r.Message,
+		string(bytes),
+	)
+
 	switch r.Level {
 	case slog.LevelDebug:
 		level = colorize(darkGray, level)
@@ -74,16 +94,6 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		level = colorize(lightYellow, level)
 	case slog.LevelError:
 		level = colorize(lightRed, level)
-	}
-
-	attrs, err := h.computeAttrs(ctx, r)
-	if err != nil {
-		return err
-	}
-
-	bytes, err := json.MarshalIndent(attrs, "", "  ")
-	if err != nil {
-		return fmt.Errorf("error when marshaling attrs: %w", err)
 	}
 
 	fmt.Println(
@@ -117,8 +127,14 @@ func NewHandler(opts *slog.HandlerOptions) *Handler {
 		opts = &slog.HandlerOptions{}
 	}
 	b := &bytes.Buffer{}
+	logFile, err := os.OpenFile("../logs/app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Ошибка при открытии файла: %v", err)
+	}
+
 	return &Handler{
-		b: b,
+		file: logFile,
+		b:    b,
 		h: slog.NewJSONHandler(b, &slog.HandlerOptions{
 			Level:       opts.Level,
 			AddSource:   opts.AddSource,
@@ -147,6 +163,19 @@ func (h *Handler) computeAttrs(
 		return nil, fmt.Errorf("error when unmarshaling inner handler's Handle result: %w", err)
 	}
 	return attrs, nil
+}
+
+func SetupCustomLogger() {
+	// Создаем новый обработчик с опциями (можно указать свои).
+	handler := NewHandler(&slog.HandlerOptions{
+		Level: slog.LevelInfo, // Уровень логирования, который вы хотите использовать
+	})
+
+	// Создаем новый логгер с этим обработчиком.
+	logger := slog.New(handler)
+
+	// Устанавливаем созданный логгер как стандартный.
+	slog.SetDefault(logger)
 }
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {

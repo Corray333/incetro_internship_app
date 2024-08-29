@@ -88,7 +88,7 @@ onBeforeMount(async () => {
       <button @click="page = 'Info'" class=" px-4 py-2 rounded-full" :class="page == 'Info' ? 'bg-gray-100' : ''">Инфо</button>
     </div>
     <section v-if="page == 'Todo'" class=" flex flex-col gap-4">
-      <h1 v-if="todo?.length == 0">Выполненных задач пока нет😔</h1>
+      <h1 v-if="todo?.length == 0">Молодец, ты выполнил все задачи🎉</h1>
       <section v-for="(section, i) of todo" :key="i" class=" flex flex-col gap-2">
         <h1 class=" font-bold text-2xl">{{ section[0].section }}</h1>
         <div class="flex gap-2 overflow-x-scroll">

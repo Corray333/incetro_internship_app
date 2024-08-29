@@ -2,3 +2,4 @@
 certbot
 api/cmd/main
 api/public
+api/logs

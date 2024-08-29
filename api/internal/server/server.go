@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -50,7 +49,7 @@ func Run(tg *telegram.TelegramClient, store *storage.Storage) {
 	router.Handle("/api/files/*", http.StripPrefix("/api/files", fs))
 
 	// TODO: add timeouts
-	fmt.Println("Port:", viper.GetString("port"))
+	slog.Info("Server is getting started", slog.String("port", viper.GetString("port")))
 	server := http.Server{
 		Addr:    "0.0.0.0:" + viper.GetString("port"),
 		Handler: router,

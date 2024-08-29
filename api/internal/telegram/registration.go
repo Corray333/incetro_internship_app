@@ -230,9 +230,6 @@ func (tg *TelegramClient) groupJoined(user *types.User, update tgbotapi.Update) 
 		slog.Error(err.Error())
 	}
 
-	fmt.Printf("Chat: %+v\n", chatID)
-	fmt.Printf("Member: %+v\n", chatMember)
-	fmt.Println("Status: " + chatMember.Status)
 	// Check the status of the user in the chat
 	if chatMember.Status != "creator" && chatMember.Status != "administrator" && chatMember.Status != "member" && chatMember.Status != "owner" && chatMember.User.UserName != "incetro" {
 		callback := tgbotapi.NewCallback(callbackQuery.ID, "Вступи в группу")

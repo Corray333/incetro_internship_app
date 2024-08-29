@@ -13,11 +13,6 @@ services:
     command: make run
     depends_on:
       - db
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   parser:
     image: node:latest
@@ -61,3 +56,28 @@ services:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
     restart: always
+
+  elasticsearch:
+    image: bitnami/elasticsearch:8.8.1
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+
+  logstash:
+    image: bitnami/logstash:8.8.1
+    command: logstash -f /usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5044:5044"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    volumes:
+      - ./api/logs:/usr/share/logstash/logs:ro
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+
+  kibana:
+    image: bitnami/kibana:8.8.1
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
