@@ -9,6 +9,7 @@ import (
 	"github.com/Corray333/internship_app/internal/storage"
 	"github.com/Corray333/internship_app/internal/telegram"
 	"github.com/Corray333/internship_app/pkg/server/auth"
+	"github.com/Corray333/internship_app/pkg/server/logger"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -18,7 +19,7 @@ import (
 
 func Run(tg *telegram.TelegramClient, store *storage.Storage) {
 	router := chi.NewMux()
-	router.Use(middleware.Logger)
+	router.Use(logger.NewLoggerMiddleware(slog.Default()))
 	router.Use(middleware.RequestID)
 
 	// TODO: get allowed origins, headers and methods from cfg

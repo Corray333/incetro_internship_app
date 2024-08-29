@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/Corray333/internship_app/internal/app"
@@ -20,7 +19,7 @@ func main() {
 	// fmt.Println()
 
 	store := storage.New()
-	fmt.Println(notion.Sync(store))
+	go notion.Sync(store)
 	app.New().Run()
 
 }
