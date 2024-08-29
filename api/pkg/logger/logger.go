@@ -78,6 +78,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		r.Time.Format(timeFormat),
 		level,
 		r.Message,
+		":",
 		string(bytes),
 	)
 
@@ -96,6 +97,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		colorize(lightGray, r.Time.Format(timeFormat)),
 		level,
 		colorize(white, r.Message),
+		":",
 		colorize(darkGray, string(bytes)),
 	)
 
